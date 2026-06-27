@@ -63,6 +63,7 @@ export default function VisitForm() {
   async function onPickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+    const startIndex = photos.length; // 追加した写真の先頭位置
     const now = Date.now();
     const added: PhotoItem[] = [];
     for (const f of Array.from(files)) {
@@ -71,6 +72,8 @@ export default function VisitForm() {
     }
     setPhotos((prev) => [...prev, ...added]);
     e.target.value = '';
+    // 撮影直後にその場で記念フレームを表示
+    setViewerIndex(startIndex);
   }
 
   async function removePhoto(pid: number) {
