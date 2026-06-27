@@ -63,7 +63,11 @@ export default function TempleDetail() {
                 </div>
                 {v.nokyo && <p className="text-xs text-slate-500 mt-0.5">納経あり</p>}
                 {v.note && <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{v.note}</p>}
-                <VisitPhotos photoIds={v.photoIds ?? []} />
+                <VisitPhotos
+                  photoIds={v.photoIds ?? []}
+                  title={`第${temple.id}番 ${temple.name}`}
+                  subtitle={v.visitedOn}
+                />
                 <Link to={`/visit/${v.id}`} className="inline-block text-xs text-[#538bb0] mt-2">
                   編集
                 </Link>

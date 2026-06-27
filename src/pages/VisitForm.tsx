@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import PhotoViewer, { type ViewerItem } from '../components/PhotoViewer';
 
 function today(): string {
   const d = new Date();
@@ -28,6 +29,7 @@ export default function VisitForm() {
   const [note, setNote] = useState('');
   const [nokyo, setNokyo] = useState(false);
   const [photos, setPhotos] = useState<PhotoItem[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(editId === null);
 
   const photosRef = useRef(photos);
@@ -121,6 +123,13 @@ export default function VisitForm() {
   const labelCls = 'block text-sm font-semibold text-slate-600 mb-1';
   const fieldCls = 'w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800';
 
+  const templeName = temples.find((t) => t.id === templeId)?.name ?? '';
+  const viewerItems: ViewerItem[] = photos.map((p) => ({
+    url: p.url,
+    title: `第${templeId}番 ${templeName}`,
+    subtitle: visitedOn,
+  }));
+
   return (
     <div>
       <header className="bg-[#1f5b8c] text-white px-4 py-3 flex items-center justify-between">
@@ -152,9 +161,11 @@ export default function VisitForm() {
           <label className={labelCls}>写真</label>
           {photos.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mb-2">
-              {photos.map((p) => (
+              {photos.map((p, i) => (
                 <div key={p.id} className="relative">
-                  <img src={p.url} alt="参拝写真" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                  <button type="button" onClick={() => setViewerIndex(i)} className="block w-full">
+                    <img src={p.url} alt="参拝写真" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => removePhoto(p.id)}
@@ -209,6 +220,10 @@ export default function VisitForm() {
           </button>
         )}
       </div>
+
+      {viewerIndex !== null && (
+        <PhotoViewer items={viewerItems} initialIndex={viewerIndex} onClose={() => setViewerIndex(null)} />
+      )}
     </div>
   );
 }
