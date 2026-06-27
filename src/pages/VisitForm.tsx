@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
-
-const WEATHER = ['晴れ', 'くもり', '雨', '雪'];
-const TRANSPORT = ['歩き', '車', 'バス', '自転車', '公共交通'];
 
 function today(): string {
   const d = new Date();
   const m = `${d.getMonth() + 1}`.padStart(2, '0');
   const day = `${d.getDate()}`.padStart(2, '0');
   return `${d.getFullYear()}-${m}-${day}`;
+}
+
+interface PhotoItem {
+  id: number;
+  url: string;
 }
 
 export default function VisitForm() {
@@ -20,58 +22,75 @@ export default function VisitForm() {
   const navigate = useNavigate();
 
   const temples = useLiveQuery(() => db.temples.orderBy('id').toArray(), []);
-  const companions = useLiveQuery(() => db.companions.toArray(), []);
 
   const [templeId, setTempleId] = useState<number>(Number(search.get('temple')) || 1);
   const [visitedOn, setVisitedOn] = useState<string>(today());
-  const [companionIds, setCompanionIds] = useState<number[]>([]);
-  const [weather, setWeather] = useState('');
-  const [transport, setTransport] = useState('');
   const [note, setNote] = useState('');
   const [nokyo, setNokyo] = useState(false);
-  const [newCompanion, setNewCompanion] = useState('');
+  const [photos, setPhotos] = useState<PhotoItem[]>([]);
   const [loaded, setLoaded] = useState(editId === null);
+
+  const photosRef = useRef(photos);
+  photosRef.current = photos;
+  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.url)), []);
 
   useEffect(() => {
     if (editId === null) return;
-    void db.visits.get(editId).then((v) => {
+    let cancelled = false;
+    void (async () => {
+      const v = await db.visits.get(editId);
       if (v) {
         setTempleId(v.templeId);
         setVisitedOn(v.visitedOn);
-        setCompanionIds(v.companionIds);
-        setWeather(v.weather ?? '');
-        setTransport(v.transport ?? '');
         setNote(v.note ?? '');
         setNokyo(v.nokyo);
+        const ph = await db.photos.bulkGet(v.photoIds ?? []);
+        const loadedPhotos = ph
+          .filter((p): p is NonNullable<typeof p> => Boolean(p))
+          .map((p) => ({ id: p.id as number, url: URL.createObjectURL(p.blob) }));
+        if (!cancelled) setPhotos(loadedPhotos);
+        else loadedPhotos.forEach((p) => URL.revokeObjectURL(p.url));
       }
-      setLoaded(true);
-    });
+      if (!cancelled) setLoaded(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [editId]);
 
-  async function addCompanion() {
-    const name = newCompanion.trim();
-    if (!name) return;
-    const cid = (await db.companions.add({ name })) as number;
-    setCompanionIds((prev) => [...prev, cid]);
-    setNewCompanion('');
+  async function onPickPhotos(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    const now = Date.now();
+    const added: PhotoItem[] = [];
+    for (const f of Array.from(files)) {
+      const pid = (await db.photos.add({ blob: f, mime: f.type, createdAt: now })) as number;
+      added.push({ id: pid, url: URL.createObjectURL(f) });
+    }
+    setPhotos((prev) => [...prev, ...added]);
+    e.target.value = '';
   }
 
-  function toggleCompanion(cid: number) {
-    setCompanionIds((prev) => (prev.includes(cid) ? prev.filter((x) => x !== cid) : [...prev, cid]));
+  async function removePhoto(pid: number) {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === pid);
+      if (target) URL.revokeObjectURL(target.url);
+      return prev.filter((p) => p.id !== pid);
+    });
+    await db.photos.delete(pid);
   }
 
   async function save() {
     const now = Date.now();
+    const photoIds = photos.map((p) => p.id);
     if (editId === null) {
       await db.visits.add({
         templeId,
         visitedOn,
-        companionIds,
-        weather: weather || undefined,
-        transport: transport || undefined,
+        companionIds: [],
         note: note || undefined,
         nokyo,
-        photoIds: [],
+        photoIds,
         createdAt: now,
         updatedAt: now,
       });
@@ -79,11 +98,9 @@ export default function VisitForm() {
       await db.visits.update(editId, {
         templeId,
         visitedOn,
-        companionIds,
-        weather: weather || undefined,
-        transport: transport || undefined,
         note: note || undefined,
         nokyo,
+        photoIds,
         updatedAt: now,
       });
     }
@@ -97,7 +114,7 @@ export default function VisitForm() {
     navigate(`/temple/${templeId}`);
   }
 
-  if (!temples || !companions || !loaded) {
+  if (!temples || !loaded) {
     return <div className="p-4 text-slate-500">読み込み中…</div>;
   }
 
@@ -132,76 +149,35 @@ export default function VisitForm() {
         </div>
 
         <div>
-          <label className={labelCls}>同行者</label>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {companions.length === 0 && <span className="text-sm text-slate-400">まだ登録がありません</span>}
-            {companions.map((c) => {
-              const active = companionIds.includes(c.id!);
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => toggleCompanion(c.id!)}
-                  className={`px-3 py-1 rounded-full text-sm border ${
-                    active ? 'bg-[#1f5b8c] text-white border-[#1f5b8c]' : 'bg-white text-slate-600 border-slate-300'
-                  }`}
-                >
-                  {c.name}
-                </button>
-              );
-            })}
-          </div>
-          <div className="flex gap-2">
+          <label className={labelCls}>写真</label>
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              {photos.map((p) => (
+                <div key={p.id} className="relative">
+                  <img src={p.url} alt="参拝写真" className="w-full h-24 object-cover rounded-lg border border-slate-200" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(p.id)}
+                    aria-label="写真を削除"
+                    className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-800/80 text-white text-sm leading-none"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <label className="block w-full text-center border-2 border-[#1f5b8c] text-[#1f5b8c] py-2.5 rounded-lg font-semibold cursor-pointer">
+            📷 写真を撮る・追加
             <input
-              className={fieldCls}
-              placeholder="同行者を追加"
-              value={newCompanion}
-              onChange={(e) => setNewCompanion(e.target.value)}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+              className="hidden"
+              onChange={onPickPhotos}
             />
-            <button
-              type="button"
-              onClick={addCompanion}
-              className="shrink-0 px-4 rounded-lg border border-[#1f5b8c] text-[#1f5b8c] font-semibold"
-            >
-              追加
-            </button>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>天候</label>
-          <div className="flex flex-wrap gap-2">
-            {WEATHER.map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setWeather(weather === w ? '' : w)}
-                className={`px-3 py-1 rounded-full text-sm border ${
-                  weather === w ? 'bg-[#538bb0] text-white border-[#538bb0]' : 'bg-white text-slate-600 border-slate-300'
-                }`}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>移動手段</label>
-          <div className="flex flex-wrap gap-2">
-            {TRANSPORT.map((tr) => (
-              <button
-                key={tr}
-                type="button"
-                onClick={() => setTransport(transport === tr ? '' : tr)}
-                className={`px-3 py-1 rounded-full text-sm border ${
-                  transport === tr ? 'bg-[#538bb0] text-white border-[#538bb0]' : 'bg-white text-slate-600 border-slate-300'
-                }`}
-              >
-                {tr}
-              </button>
-            ))}
-          </div>
+          </label>
         </div>
 
         <label className="flex items-center gap-2 text-slate-700">

@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { sortByDate, daysBetween, intervalLabel } from '../lib/derive';
+import VisitPhotos from '../components/VisitPhotos';
 
 export default function TempleDetail() {
   const { id } = useParams();
@@ -9,14 +10,12 @@ export default function TempleDetail() {
 
   const temple = useLiveQuery(() => db.temples.get(templeId), [templeId]);
   const visits = useLiveQuery(() => db.visits.where('templeId').equals(templeId).toArray(), [templeId]);
-  const companions = useLiveQuery(() => db.companions.toArray(), []);
 
-  if (!temple || !visits || !companions) {
+  if (!temple || !visits) {
     return <div className="p-4 text-slate-500">読み込み中…</div>;
   }
 
   const sorted = sortByDate(visits);
-  const cmap = new Map(companions.map((c) => [c.id!, c.name]));
 
   return (
     <div>
@@ -54,7 +53,6 @@ export default function TempleDetail() {
           {sorted.map((v, i) => {
             const prev = sorted[i - 1];
             const interval = prev ? intervalLabel(daysBetween(prev.visitedOn, v.visitedOn)) : '初回';
-            const names = v.companionIds.map((cid) => cmap.get(cid)).filter(Boolean).join('、');
             return (
               <li key={v.id} className="border border-slate-200 rounded-lg p-3">
                 <div className="flex justify-between items-baseline">
@@ -63,13 +61,9 @@ export default function TempleDetail() {
                     {i + 1}回目・{interval}
                   </span>
                 </div>
-                {names && <p className="text-sm text-slate-600 mt-1">同行：{names}</p>}
-                {(v.weather || v.transport || v.nokyo) && (
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {[v.weather, v.transport, v.nokyo ? '納経あり' : ''].filter(Boolean).join('・')}
-                  </p>
-                )}
+                {v.nokyo && <p className="text-xs text-slate-500 mt-0.5">納経あり</p>}
                 {v.note && <p className="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{v.note}</p>}
+                <VisitPhotos photoIds={v.photoIds ?? []} />
                 <Link to={`/visit/${v.id}`} className="inline-block text-xs text-[#538bb0] mt-2">
                   編集
                 </Link>
