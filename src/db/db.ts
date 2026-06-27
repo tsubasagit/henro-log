@@ -38,11 +38,19 @@ export interface Photo {
   createdAt: number;
 }
 
+/** 利用者プロフィール（単一レコード、id 固定=1）。将来のユーザー認証の布石 */
+export interface Profile {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export class HenroDB extends Dexie {
   temples!: Table<Temple, number>;
   visits!: Table<Visit, number>;
   companions!: Table<Companion, number>;
   photos!: Table<Photo, number>;
+  profile!: Table<Profile, number>;
 
   constructor() {
     super('henro-log');
@@ -51,6 +59,9 @@ export class HenroDB extends Dexie {
       visits: '++id, templeId, visitedOn, *companionIds',
       companions: '++id, name',
       photos: '++id',
+    });
+    this.version(2).stores({
+      profile: 'id',
     });
   }
 }
