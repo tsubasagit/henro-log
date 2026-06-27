@@ -23,8 +23,8 @@
 - [x] データのバックアップ/エクスポート — JSON エクスポート/インポート
 
 ### 未実装（予定）
-- [ ] 地図のGPS連動 — 現在地から近い札所を表示（地図タブに導線のみ用意済み「準備中」）
-- [ ] 地図の全88札所化 — temples の lat/lng 投入後、投影配置に置き換え
+- [ ] 地図のGPS連動 — 現在地から近い札所を表示（地図タブに導線のみ用意済み「準備中」。lat/lng は投入済み）
+- [ ] 地図の全88札所化 — lat/lng 投入済み。デフォルメ島への投影配置 or 主要15ピンのまま、の方針判断が残り
 - [ ] 写真の保存 — 端末内に画像を保持（IndexedDB / Blob、photosテーブルは定義済み）
 - [ ] クラウド同期 — 複数端末間の同期
 
@@ -42,7 +42,8 @@
 ## 5. データモデル
 ### コレクション / テーブル一覧（IndexedDB / Dexie）
 - `temples` — 札所マスタ（88件固定・シードで内蔵）
-  - 主要フィールド: id(番号1-88), name(寺名), sect(宗派), honzon(ご本尊), prefecture, address, lat, lng
+  - 主要フィールド: id(番号1-88), name(寺名), sect(宗派), honzon(ご本尊), prefecture, city, lat, lng
+  - lat/lng は全88件投入済み（Wikipedia座標, WGS84）。15/17/18/19番は誤り修正済み
 - `visits` — 訪問記録（記録の中心。1札所につき何件でも）
   - 主要フィールド: id, templeId, visitedOn(訪問日), companionIds[], weather(天候), transport(移動手段), photoIds[], note(心境メモ), nokyo(納経有無 bool), createdAt, updatedAt
 - `companions` — 同行者マスタ（集計のためマスタ化）
