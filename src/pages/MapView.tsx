@@ -1,14 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../db/db';
+import { db, type Temple } from '../db/db';
 import { TEMPLES } from '../data/temples';
 import { MAP_POINTS, ISLAND_PATH, ROUTE_PATH } from '../data/mapPoints';
+import { haversineKm, distanceLabel } from '../lib/geo';
+
+type GeoState = 'idle' | 'loading' | 'done' | 'error';
+interface Nearby {
+  temple: Temple;
+  km: number;
+}
 
 export default function MapView() {
   const navigate = useNavigate();
   const visits = useLiveQuery(() => db.visits.toArray(), []);
   const [selected, setSelected] = useState<number | null>(null);
+  const [geoState, setGeoState] = useState<GeoState>('idle');
+  const [geoError, setGeoError] = useState('');
+  const [nearby, setNearby] = useState<Nearby[]>([]);
 
   const countByTemple = new Map<number, number>();
   for (const v of visits ?? []) {
@@ -17,6 +27,35 @@ export default function MapView() {
 
   const sel = selected !== null ? TEMPLES.find((t) => t.id === selected) ?? null : null;
   const selCount = selected !== null ? countByTemple.get(selected) ?? 0 : 0;
+
+  function findNearby() {
+    if (!('geolocation' in navigator)) {
+      setGeoState('error');
+      setGeoError('この端末では位置情報を利用できません。');
+      return;
+    }
+    setGeoState('loading');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const ranked = TEMPLES.filter((t) => t.lat != null && t.lng != null)
+          .map((t) => ({ temple: t, km: haversineKm(latitude, longitude, t.lat as number, t.lng as number) }))
+          .sort((a, b) => a.km - b.km)
+          .slice(0, 5);
+        setNearby(ranked);
+        setGeoState('done');
+      },
+      (err) => {
+        setGeoState('error');
+        setGeoError(
+          err.code === err.PERMISSION_DENIED
+            ? '位置情報の利用が許可されていません。端末の設定をご確認ください。'
+            : '現在地を取得できませんでした。電波の良い場所で再度お試しください。',
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }
 
   return (
     <div>
@@ -101,14 +140,48 @@ export default function MapView() {
         )}
       </div>
 
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-4">
         <button
           type="button"
-          disabled
-          className="w-full border border-slate-200 text-slate-400 py-2.5 rounded-lg text-sm cursor-not-allowed"
+          onClick={findNearby}
+          disabled={geoState === 'loading'}
+          className="w-full bg-[#1f5b8c] hover:bg-[#16446b] disabled:opacity-60 text-white py-2.5 rounded-lg font-semibold"
         >
-          📍 現在地から近い札所（準備中）
+          {geoState === 'loading' ? '現在地を取得中…' : '📍 現在地から近い札所を探す'}
         </button>
+
+        {geoState === 'error' && <p className="text-sm text-red-500 mt-2">{geoError}</p>}
+
+        {geoState === 'done' && (
+          <div className="mt-3">
+            <h2 className="text-sm font-semibold text-slate-500 mb-1">現在地から近い札所</h2>
+            <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100">
+              {nearby.map(({ temple, km }) => {
+                const count = countByTemple.get(temple.id) ?? 0;
+                return (
+                  <li key={temple.id}>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/temple/${temple.id}`)}
+                      className="w-full text-left px-3 py-2.5 active:bg-slate-50 flex items-center gap-3"
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-slate-800 truncate">
+                          第{temple.id}番 {temple.name}
+                        </span>
+                        <span className="block text-xs text-slate-500 truncate">
+                          {temple.city}・{count > 0 ? `${count}回参拝` : '未参拝'}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-sm font-semibold text-[#1f5b8c]">{distanceLabel(km)}</span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="text-xs text-slate-400 mt-2">※直線距離（実際の道のりとは異なります）</p>
+          </div>
+        )}
       </div>
     </div>
   );
