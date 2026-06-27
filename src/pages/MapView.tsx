@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Temple } from '../db/db';
@@ -6,10 +6,24 @@ import { TEMPLES } from '../data/temples';
 import { MAP_POINTS, ISLAND_PATH, ROUTE_PATH } from '../data/mapPoints';
 import { haversineKm, distanceLabel } from '../lib/geo';
 
+// --- テスト用設定 -------------------------------------------------
+// テスト中は実GPSの代わりに固定地点（高松駅）を現在地として使う。
+// 本番では USE_TEST_LOCATION を false にすると、実際の現在地から自動表示する。
+const USE_TEST_LOCATION = true;
+const TEST_LOCATION = { lat: 34.3514, lng: 134.0466, label: '高松駅' };
+// -----------------------------------------------------------------
+
 type GeoState = 'idle' | 'loading' | 'done' | 'error';
 interface Nearby {
   temple: Temple;
   km: number;
+}
+
+function rankNearby(lat: number, lng: number): Nearby[] {
+  return TEMPLES.filter((t) => t.lat != null && t.lng != null)
+    .map((t) => ({ temple: t, km: haversineKm(lat, lng, t.lat as number, t.lng as number) }))
+    .sort((a, b) => a.km - b.km)
+    .slice(0, 5);
 }
 
 export default function MapView() {
@@ -28,7 +42,16 @@ export default function MapView() {
   const sel = selected !== null ? TEMPLES.find((t) => t.id === selected) ?? null : null;
   const selCount = selected !== null ? countByTemple.get(selected) ?? 0 : 0;
 
+  const locationLabel = USE_TEST_LOCATION ? TEST_LOCATION.label : '現在地';
+
   function findNearby() {
+    // テストモード: 固定地点（高松駅）で即表示
+    if (USE_TEST_LOCATION) {
+      setNearby(rankNearby(TEST_LOCATION.lat, TEST_LOCATION.lng));
+      setGeoState('done');
+      return;
+    }
+    // 本番: 実際の現在地から
     if (!('geolocation' in navigator)) {
       setGeoState('error');
       setGeoError('この端末では位置情報を利用できません。');
@@ -38,11 +61,7 @@ export default function MapView() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const ranked = TEMPLES.filter((t) => t.lat != null && t.lng != null)
-          .map((t) => ({ temple: t, km: haversineKm(latitude, longitude, t.lat as number, t.lng as number) }))
-          .sort((a, b) => a.km - b.km)
-          .slice(0, 5);
-        setNearby(ranked);
+        setNearby(rankNearby(latitude, longitude));
         setGeoState('done');
       },
       (err) => {
@@ -56,6 +75,12 @@ export default function MapView() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   }
+
+  // 画面を開いたら自動で近くの札所を表示する
+  useEffect(() => {
+    findNearby();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>
@@ -147,14 +172,18 @@ export default function MapView() {
           disabled={geoState === 'loading'}
           className="w-full bg-[#1f5b8c] hover:bg-[#16446b] disabled:opacity-60 text-white py-2.5 rounded-lg font-semibold"
         >
-          {geoState === 'loading' ? '現在地を取得中…' : '📍 現在地から近い札所を探す'}
+          {geoState === 'loading' ? '現在地を取得中…' : `📍 ${locationLabel}から近い札所を探す`}
         </button>
+
+        {USE_TEST_LOCATION && (
+          <p className="text-xs text-amber-600 mt-2">テスト中: 現在地の代わりに「{TEST_LOCATION.label}」を使用しています</p>
+        )}
 
         {geoState === 'error' && <p className="text-sm text-red-500 mt-2">{geoError}</p>}
 
         {geoState === 'done' && (
           <div className="mt-3">
-            <h2 className="text-sm font-semibold text-slate-500 mb-1">現在地から近い札所</h2>
+            <h2 className="text-sm font-semibold text-slate-500 mb-1">{locationLabel}から近い札所</h2>
             <ul className="border border-slate-200 rounded-lg divide-y divide-slate-100">
               {nearby.map(({ temple, km }) => {
                 const count = countByTemple.get(temple.id) ?? 0;
