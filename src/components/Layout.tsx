@@ -2,6 +2,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 
 const tabs = [
   { to: '/', label: '札所', icon: '⛩' },
+  { to: '/map', label: '地図', icon: '🗺' },
   { to: '/timeline', label: '記録', icon: '🕒' },
   { to: '/companions', label: '同行者', icon: '👥' },
   { to: '/settings', label: '設定', icon: '⚙' },
@@ -25,7 +26,7 @@ export default function Layout() {
         </NavLink>
       )}
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid grid-cols-4 z-10">
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid grid-cols-5 z-10">
         {tabs.map((t) => (
           <NavLink
             key={t.to}
