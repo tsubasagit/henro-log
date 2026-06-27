@@ -1,0 +1,13 @@
+{
+  "name": "henro-log",
+  "version": "0.1.0",
+  "private": true,
+  "description": "四国八十八ヶ所を少しずつ巡る歩みを、同行者や再訪間隔まで含めて記録する巡拝記録PWA",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint ."
+  }
+}
