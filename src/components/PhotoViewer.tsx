@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { composeFramedImage, shareImage } from '../lib/shareImage';
 
 export interface ViewerItem {
   url: string;
@@ -17,10 +18,24 @@ export default function PhotoViewer({
   onClose: () => void;
 }) {
   const [i, setI] = useState(initialIndex);
+  const [busy, setBusy] = useState(false);
   const touchX = useRef<number | null>(null);
 
   const prev = () => setI((v) => (v - 1 + items.length) % items.length);
   const next = () => setI((v) => (v + 1) % items.length);
+
+  async function onShare(item: ViewerItem) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const blob = await composeFramedImage(item.url, item.title, item.subtitle);
+      await shareImage(blob, `henro-${item.title.replace(/\s+/g, '_')}.png`, item.title);
+    } catch {
+      window.alert('画像の作成に失敗しました。');
+    } finally {
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -42,9 +57,19 @@ export default function PhotoViewer({
         <span className="text-sm text-white/70">
           {i + 1} / {items.length}
         </span>
-        <button type="button" onClick={onClose} aria-label="閉じる" className="text-3xl leading-none px-2">
-          ×
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onShare(cur)}
+            disabled={busy}
+            className="text-sm border border-white/40 rounded-full px-4 py-1.5 disabled:opacity-50"
+          >
+            {busy ? '作成中…' : '📤 シェア・保存'}
+          </button>
+          <button type="button" onClick={onClose} aria-label="閉じる" className="text-3xl leading-none px-2">
+            ×
+          </button>
+        </div>
       </div>
 
       <div
