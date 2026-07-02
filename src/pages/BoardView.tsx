@@ -74,11 +74,8 @@ export default function BoardView() {
   }
 
   function handleTap(templeId: number) {
-    if (countOf(templeId) > 0) {
-      setSheet(templeId); // 参拝済み → 確認シート
-    } else {
-      void recordVisit(templeId); // 未参拝 → 即記録
-    }
+    // いきなり記録せず、必ず確認シートを開いてから押す
+    setSheet(templeId);
   }
 
   const sheetTemple = sheet !== null ? TEMPLE.get(sheet) : null;
@@ -108,7 +105,7 @@ export default function BoardView() {
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10 flex items-center justify-between">
         <div>
           <h1 className="text-lg font-bold text-[#1f5b8c]">すごろく</h1>
-          <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ＝今日の参拝を記録</p>
+          <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して今日の参拝を記録</p>
         </div>
         <div className="text-right">
           <span className="text-2xl font-bold text-[#c0392b] leading-none">{visitedCount}</span>
@@ -226,7 +223,9 @@ export default function BoardView() {
               <h2 className="text-base font-bold text-slate-800">
                 第{sheetTemple.id}番 {sheetTemple.name}
               </h2>
-              <span className="text-xs text-[#c0392b] font-semibold">{sheetVisits.length}回参拝</span>
+              {sheetVisits.length > 0 && (
+                <span className="text-xs text-[#c0392b] font-semibold">{sheetVisits.length}回参拝</span>
+              )}
             </div>
             <p className="text-sm text-slate-500 mt-0.5">
               {sheetTemple.prefecture}
@@ -236,29 +235,55 @@ export default function BoardView() {
               <p className="text-xs text-slate-400 mt-1">最終参拝日: {lastVisitedOn}</p>
             )}
 
-            <div className="mt-4 space-y-2">
-              <button
-                type="button"
-                onClick={() => void recordVisit(sheetTemple.id)}
-                className="w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
-              >
-                今日また参拝を記録（{formatMD(today())}）
-              </button>
-              <button
-                type="button"
-                onClick={() => navigate(`/temple/${sheetTemple.id}`)}
-                className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold active:bg-slate-50"
-              >
-                詳細・写真を見る →
-              </button>
-              <button
-                type="button"
-                onClick={() => void undoLatest(sheetTemple.id)}
-                className="w-full text-red-500 py-2 rounded-lg font-medium active:bg-red-50"
-              >
-                最新の記録を取り消す
-              </button>
-            </div>
+            {sheetVisits.length === 0 ? (
+              <>
+                <p className="text-sm text-slate-600 mt-3">この札所に参拝を記録しますか？</p>
+                <div className="mt-3 space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const id = sheetTemple.id;
+                      setSheet(null);
+                      void recordVisit(id);
+                    }}
+                    className="w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
+                  >
+                    参拝を記録する（{formatMD(today())}）
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSheet(null)}
+                    className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold active:bg-slate-50"
+                  >
+                    キャンセル
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="mt-4 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => void recordVisit(sheetTemple.id)}
+                  className="w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
+                >
+                  今日また参拝を記録（{formatMD(today())}）
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/temple/${sheetTemple.id}`)}
+                  className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold active:bg-slate-50"
+                >
+                  詳細・写真を見る →
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void undoLatest(sheetTemple.id)}
+                  className="w-full text-red-500 py-2 rounded-lg font-medium active:bg-red-50"
+                >
+                  最新の記録を取り消す
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
