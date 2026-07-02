@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* 御朱印/納経帳ふうの毛筆体（Yuji Syuku をサブセット同梱）。すごろく盤の数字・済スタンプ用 */
+@font-face {
+  font-family: "Yuji Board";
+  src: url("./assets/fonts/yuji-board-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 html,
 body,
 #root {

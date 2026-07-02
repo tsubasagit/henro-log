@@ -155,9 +155,10 @@ export default function BoardView() {
                   x={n.x}
                   y={n.y + 4}
                   textAnchor="middle"
-                  fontSize={n.templeId >= 10 ? 11 : 13}
+                  fontSize={n.templeId >= 10 ? 12 : 14}
                   fontWeight="600"
                   fill="#1f5b8c"
+                  fontFamily="'Yuji Board', serif"
                 >
                   {n.templeId}
                 </text>
@@ -165,7 +166,7 @@ export default function BoardView() {
                 {visited && (
                   <g className="henro-stamp" key={`stamp-${count}`}>
                     <circle cx={n.x} cy={n.y} r="16.5" fill="rgba(192,57,43,0.12)" stroke="#c0392b" strokeWidth="2.5" />
-                    <text x={n.x} y={n.y + 5} textAnchor="middle" fontSize="14" fontWeight="700" fill="#c0392b" fontFamily="serif">
+                    <text x={n.x} y={n.y + 6} textAnchor="middle" fontSize="17" fontWeight="700" fill="#c0392b" fontFamily="'Yuji Board', serif">
                       済
                     </text>
                     {count > 1 && (
