@@ -86,7 +86,7 @@ export default function MapView() {
     <div>
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
         <h1 className="text-lg font-bold text-[#1f5b8c]">地図</h1>
-        <p className="text-sm text-slate-500 mt-0.5">主要札所をタップして開く</p>
+        <p className="text-sm text-slate-500 mt-0.5">全88札所をタップして開く</p>
       </header>
 
       <div className="px-2 pt-2">
@@ -115,29 +115,32 @@ export default function MapView() {
             opacity="0.55"
           />
 
-          <text x="372" y="208" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">香川</text>
-          <text x="512" y="252" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">徳島</text>
-          <text x="206" y="350" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">愛媛</text>
-          <text x="372" y="350" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">高知</text>
-
           {MAP_POINTS.map((p) => {
             const visited = (countByTemple.get(p.templeId) ?? 0) > 0;
             const isSel = selected === p.templeId;
             return (
               <g key={p.templeId} onClick={() => setSelected(p.templeId)} style={{ cursor: 'pointer' }}>
-                <circle cx={p.x} cy={p.y} r="16" fill="transparent" />
-                {isSel && <circle cx={p.x} cy={p.y} r="12" fill="none" stroke="#538bb0" strokeWidth="2.5" />}
+                <circle cx={p.x} cy={p.y} r="11" fill="transparent" />
+                {isSel && <circle cx={p.x} cy={p.y} r="9" fill="none" stroke="#538bb0" strokeWidth="2.5" />}
                 <circle
                   cx={p.x}
                   cy={p.y}
-                  r={isSel ? 8 : 6}
+                  r={isSel ? 6 : 4}
                   fill={visited ? '#1f5b8c' : '#ffffff'}
                   stroke="#1f5b8c"
-                  strokeWidth="2"
+                  strokeWidth="1.6"
                 />
               </g>
             );
           })}
+
+          {/* 県ラベルはピンの上に描画し、タップは透過させる（下のピンを塞がない） */}
+          <g style={{ pointerEvents: 'none' }}>
+            <text x="372" y="208" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">香川</text>
+            <text x="512" y="252" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">徳島</text>
+            <text x="206" y="350" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">愛媛</text>
+            <text x="372" y="350" textAnchor="middle" fontFamily="var(--font-sans)" fontSize="15" fontWeight="500" fill="#5f7a52" stroke="#f1e7d0" strokeWidth="3" paintOrder="stroke">高知</text>
+          </g>
         </svg>
       </div>
 

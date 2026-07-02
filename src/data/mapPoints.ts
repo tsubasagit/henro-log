@@ -1,31 +1,36 @@
 /**
  * デフォルメ四国マップ上の札所ピン座標（SVG viewBox 0 0 680 500 基準）。
- * illustrative な位置で、実緯度経度とは別物。主要札所のみ配置している。
- * 将来 temples の lat/lng が揃えば、全88札所を投影配置に置き換え可能。
+ * 実緯度経度（temples の lat/lng）を島の内側の矩形へ線形投影して全88札所を生成する。
+ * 経度→x（東ほど右）、緯度→y（北ほど上）。デフォルメ島なので厳密な地理座標ではなく
+ * 「東西南北の並びが直感的に合う」ことを狙った illustrative な配置。
+ * 盤の形を変えるなら GEO / BOX の定数だけ差し替えれば全点が追従する。
  */
+import { TEMPLES } from './temples';
+
 export interface MapPoint {
   templeId: number;
   x: number;
   y: number;
 }
 
-export const MAP_POINTS: MapPoint[] = [
-  { templeId: 1, x: 498, y: 186 },
-  { templeId: 12, x: 458, y: 238 },
-  { templeId: 21, x: 500, y: 298 },
-  { templeId: 23, x: 516, y: 346 },
-  { templeId: 24, x: 548, y: 412 },
-  { templeId: 31, x: 372, y: 410 },
-  { templeId: 37, x: 250, y: 402 },
-  { templeId: 38, x: 170, y: 442 },
-  { templeId: 44, x: 252, y: 322 },
-  { templeId: 51, x: 162, y: 300 },
-  { templeId: 60, x: 300, y: 276 },
-  { templeId: 66, x: 332, y: 232 },
-  { templeId: 75, x: 340, y: 184 },
-  { templeId: 84, x: 404, y: 202 },
-  { templeId: 88, x: 432, y: 166 },
-];
+// 投影元（札所群の実座標の外接範囲に少し余白を持たせた矩形）
+const GEO = { latMin: 32.65, latMax: 34.45, lngMin: 132.45, lngMax: 134.7 };
+// 投影先（島の輪郭の内側に収まり、県ラベルとも大きくは干渉しない矩形）
+const BOX = { xMin: 182, xMax: 540, yMin: 188, yMax: 424 };
+
+/** 緯度経度をデフォルメ島のSVG座標へ線形投影する */
+export function projectLatLng(lat: number, lng: number): { x: number; y: number } {
+  const x = BOX.xMin + ((lng - GEO.lngMin) / (GEO.lngMax - GEO.lngMin)) * (BOX.xMax - BOX.xMin);
+  const y = BOX.yMin + ((GEO.latMax - lat) / (GEO.latMax - GEO.latMin)) * (BOX.yMax - BOX.yMin);
+  return { x: Math.round(x), y: Math.round(y) };
+}
+
+export const MAP_POINTS: MapPoint[] = TEMPLES.filter(
+  (t): t is typeof t & { lat: number; lng: number } => t.lat != null && t.lng != null,
+).map((t) => {
+  const { x, y } = projectLatLng(t.lat, t.lng);
+  return { templeId: t.id, x, y };
+});
 
 /** デフォルメ四国の島の輪郭（SVG path） */
 export const ISLAND_PATH =
