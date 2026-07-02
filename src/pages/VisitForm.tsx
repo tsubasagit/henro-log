@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { downscaleImage } from '../lib/downscaleImage';
 import PhotoViewer, { type ViewerItem } from '../components/PhotoViewer';
 
 function today(): string {
@@ -67,8 +68,9 @@ export default function VisitForm() {
     const now = Date.now();
     const added: PhotoItem[] = [];
     for (const f of Array.from(files)) {
-      const pid = (await db.photos.add({ blob: f, mime: f.type, createdAt: now })) as number;
-      added.push({ id: pid, url: URL.createObjectURL(f) });
+      const { blob, mime } = await downscaleImage(f);
+      const pid = (await db.photos.add({ blob, mime, createdAt: now })) as number;
+      added.push({ id: pid, url: URL.createObjectURL(blob) });
     }
     setPhotos((prev) => [...prev, ...added]);
     e.target.value = '';
