@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
 import TempleList from './pages/TempleList';
-import MapView from './pages/MapView';
 import BoardView from './pages/BoardView';
 import TempleDetail from './pages/TempleDetail';
 import VisitForm from './pages/VisitForm';
@@ -14,7 +13,6 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<TempleList />} />
-        <Route path="/map" element={<MapView />} />
         <Route path="/board" element={<BoardView />} />
         <Route path="/temple/:id" element={<TempleDetail />} />
         <Route path="/visit/new" element={<VisitForm />} />
