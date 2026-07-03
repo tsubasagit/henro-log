@@ -28,6 +28,15 @@ function formatMD(iso: string): string {
   return `${+m}/${+d}`;
 }
 
+// 背景にうっすら敷く四国のシルエット（viewBox 0 0 680 500）
+const SHIKOKU_PATH =
+  'M175 205 C235 158 430 142 520 178 C562 196 582 232 560 275 C548 302 532 304 524 332 L556 418 L512 392 C472 360 432 415 364 426 C305 434 252 438 208 414 L168 452 L180 398 C142 368 128 318 152 272 C160 238 162 224 175 205 Z';
+
+// 巡拝路の蛇行：札所番号ごとに左右へ揺れる x 位置（節点の帯 0〜100%）
+const TRAIL_AMP = 22;
+const TRAIL_FREQ = 0.7;
+const trailX = (id: number) => 50 + TRAIL_AMP * Math.sin((id - 1) * TRAIL_FREQ);
+
 // 花吹雪の一片（節目のお祝い演出）
 const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
   left: (i * 5.5 + (i % 4) * 3) % 100,
@@ -190,6 +199,18 @@ export default function BoardView() {
         </div>
       )}
 
+      {/* 四国のシルエットを薄く敷く（巡礼の舞台） */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
+        style={{ opacity: 0.06 }}
+      >
+        <svg viewBox="0 0 680 500" preserveAspectRatio="xMidYMid meet" style={{ width: '155%' }}>
+          <path d={SHIKOKU_PATH} fill="#1f5b8c" />
+        </svg>
+      </div>
+
+      <div className="relative z-10">
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
         <div className="flex items-center justify-between">
           <div>
@@ -237,58 +258,75 @@ export default function BoardView() {
                 const walked = t.id <= furthest; // 歩いた道（現在地まで）
                 const isNext = t.id === nextId; // 次に行く札所
                 const rot = ((t.id * 37) % 7) - 3; // -3〜3度、手押しっぽい微回転
+                // 蛇行する巡拝路：この節点と上下の中点を結ぶ滑らかな曲線（道場の端で閉じる）
+                const thisX = trailX(t.id);
+                const topX = t.id === region.from ? thisX : (trailX(t.id - 1) + thisX) / 2;
+                const bottomX = t.id === region.to ? thisX : (thisX + trailX(t.id + 1)) / 2;
+                const trailD = `M ${topX} 0 Q ${thisX} 25 ${thisX} 50 Q ${thisX} 75 ${bottomX} 100`;
                 return (
                   <li key={t.id}>
                     <button
                       type="button"
                       onClick={() => handleTap(t.id)}
-                      className="flex w-full text-left active:bg-slate-50"
+                      className="flex w-full text-left active:bg-slate-50 min-h-[68px]"
                       aria-label={`第${t.id}番 ${t.name}${visited ? `・${count}回参拝済` : isNext ? '・次の札所' : '・未参拝'}（タップで${visited ? '確認' : '参拝を記録'}）`}
                     >
-                      {/* 巡拝路（歩いた分は朱色）＋スタンプ節点 */}
-                      <span className="relative w-14 shrink-0 flex items-center justify-center">
-                        <span
+                      {/* 蛇行する巡拝路（歩いた分は朱色）＋スタンプ節点 */}
+                      <span className="relative w-24 shrink-0 self-stretch">
+                        <svg
+                          className="absolute inset-0 h-full w-full"
+                          viewBox="0 0 100 100"
+                          preserveAspectRatio="none"
                           aria-hidden="true"
-                          className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0"
-                          style={{
-                            borderLeft: walked
-                              ? '2px solid rgba(192,57,43,0.35)'
-                              : '1.5px dashed rgba(31,91,140,0.25)',
-                          }}
-                        />
-                        {visited ? (
-                          <span className="relative z-10">
-                            <span className="block" style={{ transform: `rotate(${rot}deg)` }}>
-                              <span
-                                key={`stamp-${count}`}
-                                className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
-                                style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
-                              >
-                                済
+                        >
+                          <path
+                            d={trailD}
+                            fill="none"
+                            vectorEffect="non-scaling-stroke"
+                            strokeLinecap="round"
+                            stroke={walked ? 'rgba(192,57,43,0.45)' : 'rgba(31,91,140,0.28)'}
+                            strokeWidth={walked ? 2.5 : 1.5}
+                            strokeDasharray={walked ? undefined : '3 5'}
+                          />
+                        </svg>
+                        <span
+                          className="absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+                          style={{ left: `${thisX}%` }}
+                        >
+                          {visited ? (
+                            <span className="relative block">
+                              <span className="block" style={{ transform: `rotate(${rot}deg)` }}>
+                                <span
+                                  key={`stamp-${count}`}
+                                  className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
+                                  style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
+                                >
+                                  済
+                                </span>
                               </span>
+                              {count > 1 && (
+                                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#c0392b] text-white text-[10px] grid place-items-center font-bold">
+                                  {count}
+                                </span>
+                              )}
                             </span>
-                            {count > 1 && (
-                              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#c0392b] text-white text-[10px] grid place-items-center font-bold">
-                                {count}
-                              </span>
-                            )}
-                          </span>
-                        ) : (
-                          <span
-                            className={`relative z-10 w-11 h-11 rounded-full grid place-items-center bg-white border-[1.5px] text-lg ${
-                              isNext ? 'border-[#c0392b] text-[#c0392b]' : 'border-[#1f5b8c] text-[#1f5b8c]'
-                            }`}
-                            style={{ fontFamily: "'Yuji Board', serif" }}
-                          >
-                            {t.id}
-                            {isNext && (
-                              <span
-                                aria-hidden="true"
-                                className="absolute inset-0 rounded-full border-2 border-[#c0392b] animate-ping"
-                              />
-                            )}
-                          </span>
-                        )}
+                          ) : (
+                            <span
+                              className={`relative block w-11 h-11 rounded-full grid place-items-center bg-white border-[1.5px] text-lg ${
+                                isNext ? 'border-[#c0392b] text-[#c0392b]' : 'border-[#1f5b8c] text-[#1f5b8c]'
+                              }`}
+                              style={{ fontFamily: "'Yuji Board', serif" }}
+                            >
+                              {t.id}
+                              {isNext && (
+                                <span
+                                  aria-hidden="true"
+                                  className="absolute inset-0 rounded-full border-2 border-[#c0392b] animate-ping"
+                                />
+                              )}
+                            </span>
+                          )}
+                        </span>
                       </span>
 
                       {/* 寺名・所在・回数 */}
@@ -322,6 +360,7 @@ export default function BoardView() {
           </section>
         );
       })}
+      </div>
 
       {/* トースト */}
       {toast && (
