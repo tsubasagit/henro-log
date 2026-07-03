@@ -3,9 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Visit } from '../db/db';
 import { TEMPLES } from '../data/temples';
-import { BOARD_NODES, ROUTE_POINTS, BOARD_W, BOARD_H } from '../data/boardPath';
 
 const TEMPLE = new Map(TEMPLES.map((t) => [t.id, t]));
+
+// 四国八十八ヶ所の道場（区切り）
+const REGIONS = [
+  { label: '阿波・発心の道場（1〜23番）', from: 1, to: 23 },
+  { label: '土佐・修行の道場（24〜39番）', from: 24, to: 39 },
+  { label: '伊予・菩提の道場（40〜65番）', from: 40, to: 65 },
+  { label: '讃岐・涅槃の道場（66〜88番）', from: 66, to: 88 },
+];
 
 /** 端末ローカルの今日を YYYY-MM-DD で返す */
 function today(): string {
@@ -45,7 +52,12 @@ export default function BoardView() {
     else visitsByTemple.set(v.templeId, [v]);
   }
   const countOf = (id: number) => visitsByTemple.get(id)?.length ?? 0;
-  const visitedCount = BOARD_NODES.filter((n) => countOf(n.templeId) > 0).length;
+  const lastOf = (id: number): string | null => {
+    const a = visitsByTemple.get(id);
+    if (!a || a.length === 0) return null;
+    return a.map((v) => v.visitedOn).sort()[a.length - 1];
+  };
+  const visitedCount = TEMPLES.filter((t) => countOf(t.id) > 0).length;
 
   /** 今日の日付で参拝を1件記録する */
   async function recordVisit(templeId: number) {
@@ -93,8 +105,7 @@ export default function BoardView() {
           60% { transform: scale(1.18); }
           100% { transform: scale(1); opacity: 1; }
         }
-        .henro-stamp {
-          transform-box: fill-box;
+        .henro-stamp-html {
           transform-origin: center;
           animation: henroStampPop 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
         }
@@ -102,97 +113,97 @@ export default function BoardView() {
         @keyframes henroFade { from { opacity: 0; } to { opacity: 1; } }
       `}</style>
 
-      <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
-          <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して押印（今日の参拝を記録）</p>
+      <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
+            <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して押印</p>
+          </div>
+          <div className="text-right leading-none">
+            <span className="text-2xl font-bold text-[#c0392b]">{visitedCount}</span>
+            <span className="text-sm text-slate-400"> / 88</span>
+          </div>
         </div>
-        <div className="text-right">
-          <span className="text-2xl font-bold text-[#c0392b] leading-none">{visitedCount}</span>
-          <span className="text-sm text-slate-400"> / 88</span>
+        <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-full bg-[#1f5b8c] transition-all" style={{ width: `${(visitedCount / 88) * 100}%` }} />
         </div>
       </header>
 
-      <div className="px-2 pt-2">
-        <svg viewBox={`0 0 ${BOARD_W} ${BOARD_H}`} width="100%" role="img" aria-label="四国八十八ヶ所 すごろく スタンプ盤">
-          <rect x="0" y="0" width={BOARD_W} height={BOARD_H} fill="#eef0d9" />
+      {REGIONS.map((region) => (
+        <section key={region.label}>
+          <h2 className="px-4 pt-4 pb-1 text-sm font-semibold text-slate-500">{region.label}</h2>
+          <ul>
+            {TEMPLES.filter((t) => t.id >= region.from && t.id <= region.to).map((t) => {
+              const count = countOf(t.id);
+              const visited = count > 0;
+              const last = lastOf(t.id);
+              return (
+                <li key={t.id}>
+                  <button
+                    type="button"
+                    onClick={() => handleTap(t.id)}
+                    className="flex w-full text-left active:bg-slate-50"
+                    aria-label={`第${t.id}番 ${t.name}${visited ? `・${count}回参拝済` : '・未参拝'}（タップで${visited ? '確認' : '参拝を記録'}）`}
+                  >
+                    {/* 巡拝路の点線＋スタンプ節点 */}
+                    <span className="relative w-14 shrink-0 flex items-center justify-center">
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 border-l border-dashed border-[#1f5b8c]/30"
+                      />
+                      {visited ? (
+                        <span className="relative z-10">
+                          <span
+                            key={`stamp-${count}`}
+                            className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
+                            style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
+                          >
+                            済
+                          </span>
+                          {count > 1 && (
+                            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#c0392b] text-white text-[10px] grid place-items-center font-bold">
+                              {count}
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span
+                          className="relative z-10 w-11 h-11 rounded-full grid place-items-center bg-white border-[1.5px] border-[#1f5b8c] text-[#1f5b8c] text-lg"
+                          style={{ fontFamily: "'Yuji Board', serif" }}
+                        >
+                          {t.id}
+                        </span>
+                      )}
+                    </span>
 
-          {/* 背景の雰囲気（後からイラストに差し替え可能な独立レイヤー） */}
-          <path d="M40 120 L70 74 L100 120 Z" fill="#c6d8a8" opacity="0.55" />
-          <path d="M280 300 L312 250 L344 300 Z" fill="#c6d8a8" opacity="0.55" />
-          <path d="M150 560 L182 512 L214 560 Z" fill="#c6d8a8" opacity="0.55" />
-
-          {/* 巡拝路 */}
-          <polyline
-            points={ROUTE_POINTS}
-            fill="none"
-            stroke="#1f5b8c"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="1 8"
-            opacity="0.45"
-          />
-
-          {/* 札所マス */}
-          {BOARD_NODES.map((n) => {
-            const count = countOf(n.templeId);
-            const visited = count > 0;
-            return (
-              <g
-                key={n.templeId}
-                onClick={() => handleTap(n.templeId)}
-                style={{ cursor: 'pointer' }}
-                role="button"
-                aria-label={`第${n.templeId}番 ${TEMPLE.get(n.templeId)?.name ?? ''}${visited ? '（参拝済・タップで詳細）' : '（タップで参拝を記録）'}`}
-              >
-                <circle cx={n.x} cy={n.y} r="18" fill="transparent" />
-                <circle cx={n.x} cy={n.y} r="15" fill="#ffffff" stroke="#1f5b8c" strokeWidth="1.5" />
-                <text
-                  x={n.x}
-                  y={n.y + 4}
-                  textAnchor="middle"
-                  fontSize={n.templeId >= 10 ? 12 : 14}
-                  fontWeight="600"
-                  fill="#1f5b8c"
-                  fontFamily="'Yuji Board', serif"
-                >
-                  {n.templeId}
-                </text>
-
-                {visited && (
-                  <g className="henro-stamp" key={`stamp-${count}`}>
-                    <circle cx={n.x} cy={n.y} r="16.5" fill="rgba(192,57,43,0.12)" stroke="#c0392b" strokeWidth="2.5" />
-                    <text x={n.x} y={n.y + 6} textAnchor="middle" fontSize="17" fontWeight="700" fill="#c0392b" fontFamily="'Yuji Board', serif">
-                      済
-                    </text>
-                    {count > 1 && (
-                      <>
-                        <circle cx={n.x + 12} cy={n.y - 12} r="7" fill="#c0392b" />
-                        <text x={n.x + 12} y={n.y - 8.5} textAnchor="middle" fontSize="9" fontWeight="700" fill="#ffffff">
-                          {count}
-                        </text>
-                      </>
-                    )}
-                  </g>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      <div className="px-4 pt-1 pb-2 flex items-center gap-4 text-xs text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3.5 h-3.5 rounded-full bg-[rgba(192,57,43,0.12)] border-2 border-[#c0392b]" />
-          参拝済
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="inline-block w-3.5 h-3.5 rounded-full bg-white border-[1.5px] border-[#1f5b8c]" />
-          未参拝
-        </span>
-        <span className="ml-auto text-slate-400">タップで参拝を記録</span>
-      </div>
+                    {/* 寺名・所在・回数 */}
+                    <span className="flex-1 min-w-0 flex items-center gap-3 border-b border-slate-100 py-3 pr-4">
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-medium text-slate-800 truncate">
+                          第{t.id}番 {t.name}
+                        </span>
+                        <span className="block text-xs text-slate-500 truncate">
+                          {t.city}・{t.honzon}
+                        </span>
+                      </span>
+                      <span className="shrink-0 text-right text-xs">
+                        {visited ? (
+                          <>
+                            <span className="block text-slate-700">{last}</span>
+                            <span className="block text-slate-400">{count}回</span>
+                          </>
+                        ) : (
+                          <span className="text-slate-300">未参拝</span>
+                        )}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ))}
 
       {/* トースト */}
       {toast && (
@@ -205,7 +216,7 @@ export default function BoardView() {
         </div>
       )}
 
-      {/* 参拝済みマスの確認シート */}
+      {/* 確認シート */}
       {sheetTemple && (
         <div
           className="fixed inset-0 z-40 flex items-end justify-center"
