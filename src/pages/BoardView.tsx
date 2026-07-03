@@ -7,6 +7,15 @@ import { useIsScrolling } from '../lib/useIsScrolling';
 import henroMapBg from '../assets/img/henro-map-bg.jpg';
 import henroWalk1 from '../assets/img/henro-walk-1.png';
 import henroWalk2 from '../assets/img/henro-walk-2.png';
+import templeIllust1 from '../assets/img/temple-illust-1.png';
+import templeIllust2 from '../assets/img/temple-illust-2.png';
+import templeIllust3 from '../assets/img/temple-illust-3.png';
+import templeIllust4 from '../assets/img/temple-illust-4.png';
+import { playStamp } from '../lib/sfx';
+
+// 札所ごとに出す挿絵（番号で一定＝毎回同じ絵になる）
+const TEMPLE_ILLUST = [templeIllust1, templeIllust2, templeIllust3, templeIllust4];
+const illustOf = (id: number) => TEMPLE_ILLUST[(id - 1) % TEMPLE_ILLUST.length];
 
 const TEMPLE = new Map(TEMPLES.map((t) => [t.id, t]));
 
@@ -100,6 +109,7 @@ export default function BoardView() {
 
   /** 今日の日付で参拝を1件記録する */
   async function recordVisit(templeId: number) {
+    playStamp(); // 押印の効果音
     const name = TEMPLE.get(templeId)?.name ?? '';
     // 記録前の状態で節目を判定する
     const wasUnvisited = countOf(templeId) === 0;
@@ -409,6 +419,12 @@ export default function BoardView() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-slate-300" />
+            <img
+              src={illustOf(sheetTemple.id)}
+              alt=""
+              aria-hidden="true"
+              className="mx-auto mb-3 h-28 w-auto object-contain drop-shadow-sm"
+            />
             <div className="flex items-baseline justify-between">
               <h2 className="text-base font-bold text-slate-800">
                 第{sheetTemple.id}番 {sheetTemple.name}
