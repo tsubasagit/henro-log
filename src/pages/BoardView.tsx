@@ -28,21 +28,39 @@ function formatMD(iso: string): string {
   return `${+m}/${+d}`;
 }
 
+// 花吹雪の一片（節目のお祝い演出）
+const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
+  left: (i * 5.5 + (i % 4) * 3) % 100,
+  delay: (i % 6) * 0.09,
+  dur: 1.2 + (i % 5) * 0.14,
+  size: 16 + (i % 4) * 5,
+  emoji: ['🌸', '✨', '🎉', '🏵️'][i % 4],
+}));
+
 export default function BoardView() {
   const navigate = useNavigate();
   const visits = useLiveQuery(() => db.visits.toArray(), []);
   const [sheet, setSheet] = useState<number | null>(null); // 確認シートを開いている札所番号
   const [toast, setToast] = useState<string | null>(null);
+  const [party, setParty] = useState(false); // 花吹雪の表示
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const partyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
+    if (partyTimer.current) clearTimeout(partyTimer.current);
   }, []);
 
   function showToast(msg: string) {
     setToast(msg);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 2400);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }
+
+  function celebrate() {
+    setParty(true);
+    if (partyTimer.current) clearTimeout(partyTimer.current);
+    partyTimer.current = setTimeout(() => setParty(false), 1800);
   }
 
   const visitsByTemple = new Map<number, Visit[]>();
@@ -58,9 +76,32 @@ export default function BoardView() {
     return a.map((v) => v.visitedOn).sort()[a.length - 1];
   };
   const visitedCount = TEMPLES.filter((t) => countOf(t.id) > 0).length;
+  const furthest = visitedCount > 0 ? Math.max(...TEMPLES.filter((t) => countOf(t.id) > 0).map((t) => t.id)) : 0;
+  const nextId = TEMPLES.find((t) => countOf(t.id) === 0)?.id ?? null; // まだ参拝していない最小番号
+  const remaining = 88 - visitedCount;
+  const pct = Math.round((visitedCount / 88) * 100);
+  const progressMsg =
+    visitedCount === 0
+      ? 'はじめの一歩を踏み出しましょう 🚶'
+      : visitedCount === 88
+        ? '満願成就！おめでとうございます 🎉'
+        : `結願まであと ${remaining} ヶ寺 🌸`;
 
   /** 今日の日付で参拝を1件記録する */
   async function recordVisit(templeId: number) {
+    const name = TEMPLE.get(templeId)?.name ?? '';
+    // 記録前の状態で節目を判定する
+    const wasUnvisited = countOf(templeId) === 0;
+    const region = REGIONS.find((r) => templeId >= r.from && templeId <= r.to);
+    const regionComplete =
+      wasUnvisited &&
+      region != null &&
+      TEMPLES.filter((t) => t.id >= region.from && t.id <= region.to).every(
+        (t) => t.id === templeId || countOf(t.id) > 0,
+      );
+    const allComplete = wasUnvisited && visitedCount + 1 === 88;
+    const isFirst = wasUnvisited && visitedCount === 0;
+
     const now = Date.now();
     await db.visits.add({
       templeId,
@@ -71,7 +112,19 @@ export default function BoardView() {
       createdAt: now,
       updatedAt: now,
     });
-    showToast(`第${templeId}番 ${TEMPLE.get(templeId)?.name ?? ''} に参拝を記録（${formatMD(today())}）`);
+
+    if (allComplete) {
+      showToast('🎉 満願成就！八十八ヶ所すべて参拝しました');
+      celebrate();
+    } else if (regionComplete && region) {
+      showToast(`🎉 ${region.label.split('（')[0]} 満願！`);
+      celebrate();
+    } else if (isFirst) {
+      showToast(`はじめの一歩 🌸 第${templeId}番 ${name} に参拝を記録`);
+      celebrate();
+    } else {
+      showToast(`第${templeId}番 ${name} に参拝を記録（${formatMD(today())}）`);
+    }
   }
 
   /** その札所の最新の記録を1件取り消す（写真があれば併せて削除） */
@@ -111,7 +164,31 @@ export default function BoardView() {
         }
         @keyframes henroSheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         @keyframes henroFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes henroFall {
+          0% { transform: translateY(-12vh) rotate(0deg); opacity: 0; }
+          12% { opacity: 1; }
+          100% { transform: translateY(112vh) rotate(400deg); opacity: 0; }
+        }
       `}</style>
+
+      {/* 節目のお祝い：花吹雪 */}
+      {party && (
+        <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none" aria-hidden="true">
+          {CONFETTI.map((c, i) => (
+            <span
+              key={i}
+              className="absolute top-0"
+              style={{
+                left: `${c.left}%`,
+                fontSize: `${c.size}px`,
+                animation: `henroFall ${c.dur}s ease-in ${c.delay}s both`,
+              }}
+            >
+              {c.emoji}
+            </span>
+          ))}
+        </div>
+      )}
 
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
         <div className="flex items-center justify-between">
@@ -125,85 +202,126 @@ export default function BoardView() {
           </div>
         </div>
         <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-[#1f5b8c] transition-all" style={{ width: `${(visitedCount / 88) * 100}%` }} />
+          <div className="h-full bg-[#1f5b8c] transition-all duration-500" style={{ width: `${pct}%` }} />
         </div>
+        <p className="mt-1 flex items-center justify-between text-xs text-slate-500">
+          <span>{progressMsg}</span>
+          <span className="font-semibold text-[#1f5b8c]">{pct}%</span>
+        </p>
       </header>
 
-      {REGIONS.map((region) => (
-        <section key={region.label}>
-          <h2 className="px-4 pt-4 pb-1 text-sm font-semibold text-slate-500">{region.label}</h2>
-          <ul>
-            {TEMPLES.filter((t) => t.id >= region.from && t.id <= region.to).map((t) => {
-              const count = countOf(t.id);
-              const visited = count > 0;
-              const last = lastOf(t.id);
-              return (
-                <li key={t.id}>
-                  <button
-                    type="button"
-                    onClick={() => handleTap(t.id)}
-                    className="flex w-full text-left active:bg-slate-50"
-                    aria-label={`第${t.id}番 ${t.name}${visited ? `・${count}回参拝済` : '・未参拝'}（タップで${visited ? '確認' : '参拝を記録'}）`}
-                  >
-                    {/* 巡拝路の点線＋スタンプ節点 */}
-                    <span className="relative w-14 shrink-0 flex items-center justify-center">
-                      <span
-                        aria-hidden="true"
-                        className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 border-l border-dashed border-[#1f5b8c]/30"
-                      />
-                      {visited ? (
-                        <span className="relative z-10">
-                          <span
-                            key={`stamp-${count}`}
-                            className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
-                            style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
-                          >
-                            済
-                          </span>
-                          {count > 1 && (
-                            <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#c0392b] text-white text-[10px] grid place-items-center font-bold">
-                              {count}
-                            </span>
-                          )}
-                        </span>
-                      ) : (
+      {REGIONS.map((region) => {
+        const inRegion = TEMPLES.filter((t) => t.id >= region.from && t.id <= region.to);
+        const regionTotal = inRegion.length;
+        const regionDone = inRegion.filter((t) => countOf(t.id) > 0).length;
+        const regionClear = regionDone === regionTotal;
+        return (
+          <section key={region.label}>
+            <h2 className="px-4 pt-4 pb-1 flex items-center gap-2 text-sm font-semibold text-slate-500">
+              <span>{region.label}</span>
+              {regionClear ? (
+                <span className="text-[11px] font-bold text-[#c0392b] border border-[#c0392b] rounded px-1.5 py-0.5">
+                  満願
+                </span>
+              ) : (
+                <span className="text-xs font-normal text-slate-400">
+                  {regionDone}/{regionTotal}
+                </span>
+              )}
+            </h2>
+            <ul>
+              {inRegion.map((t) => {
+                const count = countOf(t.id);
+                const visited = count > 0;
+                const last = lastOf(t.id);
+                const walked = t.id <= furthest; // 歩いた道（現在地まで）
+                const isNext = t.id === nextId; // 次に行く札所
+                const rot = ((t.id * 37) % 7) - 3; // -3〜3度、手押しっぽい微回転
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleTap(t.id)}
+                      className="flex w-full text-left active:bg-slate-50"
+                      aria-label={`第${t.id}番 ${t.name}${visited ? `・${count}回参拝済` : isNext ? '・次の札所' : '・未参拝'}（タップで${visited ? '確認' : '参拝を記録'}）`}
+                    >
+                      {/* 巡拝路（歩いた分は朱色）＋スタンプ節点 */}
+                      <span className="relative w-14 shrink-0 flex items-center justify-center">
                         <span
-                          className="relative z-10 w-11 h-11 rounded-full grid place-items-center bg-white border-[1.5px] border-[#1f5b8c] text-[#1f5b8c] text-lg"
-                          style={{ fontFamily: "'Yuji Board', serif" }}
-                        >
-                          {t.id}
-                        </span>
-                      )}
-                    </span>
-
-                    {/* 寺名・所在・回数 */}
-                    <span className="flex-1 min-w-0 flex items-center gap-3 border-b border-slate-100 py-3 pr-4">
-                      <span className="flex-1 min-w-0">
-                        <span className="block font-medium text-slate-800 truncate">
-                          第{t.id}番 {t.name}
-                        </span>
-                        <span className="block text-xs text-slate-500 truncate">
-                          {t.city}・{t.honzon}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-right text-xs">
+                          aria-hidden="true"
+                          className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0"
+                          style={{
+                            borderLeft: walked
+                              ? '2px solid rgba(192,57,43,0.35)'
+                              : '1.5px dashed rgba(31,91,140,0.25)',
+                          }}
+                        />
                         {visited ? (
-                          <>
-                            <span className="block text-slate-700">{last}</span>
-                            <span className="block text-slate-400">{count}回</span>
-                          </>
+                          <span className="relative z-10">
+                            <span className="block" style={{ transform: `rotate(${rot}deg)` }}>
+                              <span
+                                key={`stamp-${count}`}
+                                className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
+                                style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
+                              >
+                                済
+                              </span>
+                            </span>
+                            {count > 1 && (
+                              <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-[#c0392b] text-white text-[10px] grid place-items-center font-bold">
+                                {count}
+                              </span>
+                            )}
+                          </span>
                         ) : (
-                          <span className="text-slate-300">未参拝</span>
+                          <span
+                            className={`relative z-10 w-11 h-11 rounded-full grid place-items-center bg-white border-[1.5px] text-lg ${
+                              isNext ? 'border-[#c0392b] text-[#c0392b]' : 'border-[#1f5b8c] text-[#1f5b8c]'
+                            }`}
+                            style={{ fontFamily: "'Yuji Board', serif" }}
+                          >
+                            {t.id}
+                            {isNext && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute inset-0 rounded-full border-2 border-[#c0392b] animate-ping"
+                              />
+                            )}
+                          </span>
                         )}
                       </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      ))}
+
+                      {/* 寺名・所在・回数 */}
+                      <span className="flex-1 min-w-0 flex items-center gap-3 border-b border-slate-100 py-3 pr-4">
+                        <span className="flex-1 min-w-0">
+                          <span className="block font-medium text-slate-800 truncate">
+                            第{t.id}番 {t.name}
+                          </span>
+                          <span className="block text-xs text-slate-500 truncate">
+                            {t.city}・{t.honzon}
+                          </span>
+                        </span>
+                        <span className="shrink-0 text-right text-xs">
+                          {visited ? (
+                            <>
+                              <span className="block text-slate-700">{last}</span>
+                              <span className="block text-slate-400">{count}回</span>
+                            </>
+                          ) : isNext ? (
+                            <span className="text-[#c0392b] font-semibold">つぎ →</span>
+                          ) : (
+                            <span className="text-slate-300">未参拝</span>
+                          )}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
 
       {/* トースト */}
       {toast && (
