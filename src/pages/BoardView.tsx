@@ -207,7 +207,7 @@ export default function BoardView() {
       </div>
 
       <div className="relative z-10">
-      <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
+      <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-20">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
