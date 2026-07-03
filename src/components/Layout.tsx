@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useIsScrolling } from '../lib/useIsScrolling';
+import { useMusicOn } from '../lib/music';
+import bgmSrc from '../assets/audio/henro-bgm.mp3';
 
 const tabs = [
   { to: '/', label: '札所', icon: '⛩' },
@@ -10,8 +13,37 @@ const tabs = [
 
 export default function Layout() {
   const scrolling = useIsScrolling(); // スクロール中はフッターを透明にして背景を見せる
+  const musicOn = useMusicOn();
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  // 設定の ON/OFF に合わせて BGM を再生／停止
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    a.volume = 0.45;
+    if (musicOn) {
+      void a.play().catch(() => {
+        // 自動再生がブロックされた場合は、次のタップで再開する
+      });
+    } else {
+      a.pause();
+    }
+  }, [musicOn]);
+
+  // 自動再生ブロック対策：最初のタップで、ONなら再生を開始する
+  useEffect(() => {
+    if (!musicOn) return;
+    const resume = () => {
+      const a = audioRef.current;
+      if (a && a.paused) void a.play().catch(() => {});
+    };
+    window.addEventListener('pointerdown', resume, { once: true });
+    return () => window.removeEventListener('pointerdown', resume);
+  }, [musicOn]);
+
   return (
     <div className="relative min-h-screen max-w-md mx-auto bg-white text-slate-800 pb-16 shadow-sm">
+      <audio ref={audioRef} src={bgmSrc} loop preload="auto" />
       <Outlet />
 
       <nav

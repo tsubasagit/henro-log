@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { useMusicOn, setMusicOn } from '../lib/music';
 
 export default function Settings() {
   const profile = useLiveQuery(() => db.profile.get(1), []);
+  const musicOn = useMusicOn();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -74,6 +76,36 @@ export default function Settings() {
           </div>
           <p className="text-xs text-slate-400 mt-3">
             ※ 現在は入力内容をこの端末に保存します。ユーザー認証は今後実装予定です。
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-slate-600 mb-2">サウンド</h2>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={musicOn}
+            onClick={() => setMusicOn(!musicOn)}
+            className="w-full flex items-center justify-between border border-slate-200 rounded-lg px-4 py-3 active:bg-slate-50"
+          >
+            <span className="text-left">
+              <span className="block font-medium text-slate-800">音楽（BGM）</span>
+              <span className="block text-xs text-slate-500">ファミコン風の巡礼テーマを流す</span>
+            </span>
+            <span
+              className={`relative inline-block w-12 h-7 rounded-full transition-colors ${
+                musicOn ? 'bg-[#1f5b8c]' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-6 h-6 rounded-full bg-white shadow transition-transform ${
+                  musicOn ? 'translate-x-5' : ''
+                }`}
+              />
+            </span>
+          </button>
+          <p className="text-xs text-slate-400 mt-2">
+            ※ 端末に保存します。オフのときは音は鳴りません。
           </p>
         </section>
 

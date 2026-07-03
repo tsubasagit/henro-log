@@ -5,6 +5,8 @@ import { db, type Visit } from '../db/db';
 import { TEMPLES } from '../data/temples';
 import { useIsScrolling } from '../lib/useIsScrolling';
 import henroMapBg from '../assets/img/henro-map-bg.jpg';
+import henroWalk1 from '../assets/img/henro-walk-1.png';
+import henroWalk2 from '../assets/img/henro-walk-2.png';
 
 const TEMPLE = new Map(TEMPLES.map((t) => [t.id, t]));
 
@@ -88,6 +90,7 @@ export default function BoardView() {
   const nextId = TEMPLES.find((t) => countOf(t.id) === 0)?.id ?? null; // まだ参拝していない最小番号
   const remaining = 88 - visitedCount;
   const pct = Math.round((visitedCount / 88) * 100);
+  const walkerPos = Math.max(5, Math.min(95, (visitedCount / 88) * 100)); // 住職の位置（端で見切れないよう5〜95%）
   const progressMsg =
     visitedCount === 0
       ? 'はじめの一歩を踏み出しましょう 🚶'
@@ -177,6 +180,12 @@ export default function BoardView() {
           12% { opacity: 1; }
           100% { transform: translateY(112vh) rotate(400deg); opacity: 0; }
         }
+        @keyframes henroBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+        @keyframes henroFrameA { 0%,49.9% { opacity: 1; } 50%,100% { opacity: 0; } }
+        @keyframes henroFrameB { 0%,49.9% { opacity: 0; } 50%,100% { opacity: 1; } }
+        .henro-walker { animation: henroBob 0.62s ease-in-out infinite; }
+        .henro-fa { animation: henroFrameA 0.62s steps(1, end) infinite; }
+        .henro-fb { animation: henroFrameB 0.62s steps(1, end) infinite; }
       `}</style>
 
       {/* 節目のお祝い：花吹雪 */}
@@ -224,8 +233,19 @@ export default function BoardView() {
             <span className="text-sm text-slate-400"> / 88</span>
           </div>
         </div>
-        <div className="mt-2 h-2 bg-slate-100 rounded-full overflow-hidden">
-          <div className="h-full bg-[#1f5b8c] transition-all duration-500" style={{ width: `${pct}%` }} />
+        {/* 住職が歩いて進む進捗バー */}
+        <div className="mt-2 relative h-12">
+          <div className="absolute left-1 right-1 bottom-1.5 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div className="h-full bg-[#1f5b8c] transition-all duration-700" style={{ width: `${pct}%` }} />
+          </div>
+          <div
+            className="henro-walker absolute bottom-1 w-10 h-11 transition-[left] duration-700"
+            style={{ left: `${walkerPos}%`, marginLeft: '-20px' }}
+            aria-hidden="true"
+          >
+            <img src={henroWalk1} alt="" className="henro-fa absolute bottom-0 left-0 w-10" />
+            <img src={henroWalk2} alt="" className="henro-fb absolute bottom-0 left-0 w-10" />
+          </div>
         </div>
         <p className="mt-1 flex items-center justify-between text-xs text-slate-500">
           <span>{progressMsg}</span>
