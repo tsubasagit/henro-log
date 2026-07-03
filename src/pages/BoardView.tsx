@@ -12,6 +12,8 @@ import templeIllust2 from '../assets/img/temple-illust-2.png';
 import templeIllust3 from '../assets/img/temple-illust-3.png';
 import templeIllust4 from '../assets/img/temple-illust-4.png';
 import { playStamp } from '../lib/sfx';
+import { downscaleImage } from '../lib/downscaleImage';
+import PhotoViewer, { type ViewerItem } from '../components/PhotoViewer';
 
 // 札所ごとに出す挿絵（番号で一定＝毎回同じ絵になる）
 const TEMPLE_ILLUST = [templeIllust1, templeIllust2, templeIllust3, templeIllust4];
@@ -107,8 +109,8 @@ export default function BoardView() {
         ? '満願成就！おめでとうございます 🎉'
         : `結願まであと ${remaining} ヶ寺 🌸`;
 
-  /** 今日の日付で参拝を1件記録する */
-  async function recordVisit(templeId: number) {
+  /** 今日の日付で参拝を1件記録する（写真つきも可） */
+  async function recordVisit(templeId: number, photoIds: number[] = []) {
     playStamp(); // 押印の効果音
     const name = TEMPLE.get(templeId)?.name ?? '';
     // 記録前の状態で節目を判定する
@@ -128,7 +130,7 @@ export default function BoardView() {
       templeId,
       visitedOn: today(),
       companionIds: [],
-      photoIds: [],
+      photoIds,
       nokyo: false,
       createdAt: now,
       updatedAt: now,
@@ -162,6 +164,62 @@ export default function BoardView() {
   function handleTap(templeId: number) {
     // いきなり記録せず、必ず確認シートを開いてから押す
     setSheet(templeId);
+  }
+
+  // ---- シートの「写真を追加」 -------------------------------------------
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [pendingPhoto, setPendingPhoto] = useState<{ id: number; url: string } | null>(null);
+  const [viewer, setViewer] = useState<ViewerItem | null>(null);
+
+  /** 撮影/選択した写真を縮小して保管し、シートにサムネイル表示する */
+  async function onPickPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    if (!f) return;
+    const { blob, mime } = await downscaleImage(f);
+    const id = (await db.photos.add({ blob, mime, createdAt: Date.now() })) as number;
+    setPendingPhoto((prev) => {
+      if (prev) {
+        void db.photos.delete(prev.id);
+        URL.revokeObjectURL(prev.url);
+      }
+      return { id, url: URL.createObjectURL(blob) };
+    });
+  }
+
+  async function removePendingPhoto() {
+    if (!pendingPhoto) return;
+    await db.photos.delete(pendingPhoto.id);
+    URL.revokeObjectURL(pendingPhoto.url);
+    setPendingPhoto(null);
+  }
+
+  // 記録せずにシートを閉じたら、選択中の写真は破棄する
+  // （pendingPhoto も依存に含め、選択完了がクローズより遅れても孤児を残さない）
+  useEffect(() => {
+    if (sheet === null && pendingPhoto) {
+      void db.photos.delete(pendingPhoto.id);
+      URL.revokeObjectURL(pendingPhoto.url);
+      setPendingPhoto(null);
+    }
+  }, [sheet, pendingPhoto]);
+
+  /** シートの「記録する」：写真があれば一緒に保存し、直後に記念フレームで表示する */
+  function confirmRecord(templeId: number) {
+    const photo = pendingPhoto;
+    const name = TEMPLE.get(templeId)?.name ?? '';
+    setPendingPhoto(null);
+    setSheet(null);
+    void recordVisit(templeId, photo ? [photo.id] : []).then(() => {
+      if (photo) {
+        setViewer({ url: photo.url, title: `第${templeId}番 ${name}`, subtitle: today() });
+      }
+    });
+  }
+
+  function closeViewer() {
+    if (viewer) URL.revokeObjectURL(viewer.url);
+    setViewer(null);
   }
 
   const sheetTemple = sheet !== null ? TEMPLE.get(sheet) : null;
@@ -451,21 +509,56 @@ export default function BoardView() {
               <p className="text-xs text-slate-400 mt-1">最終参拝日: {lastVisitedOn}</p>
             )}
 
+            {/* 写真の追加（撮影/選択 → 押印と一緒に記録） */}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => void onPickPhoto(e)}
+            />
+
             {sheetVisits.length === 0 ? (
               <>
                 <p className="text-sm text-slate-600 mt-3">この札所に参拝を記録しますか？</p>
                 <div className="mt-3 space-y-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      const id = sheetTemple.id;
-                      setSheet(null);
-                      void recordVisit(id);
-                    }}
+                    onClick={() => confirmRecord(sheetTemple.id)}
                     className="press w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-3 rounded-xl font-semibold"
                   >
                     参拝を記録する（{formatMD(today())}）
                   </button>
+                  {pendingPhoto ? (
+                    <div className="flex items-center gap-3 border border-slate-200 rounded-xl p-2.5">
+                      <img
+                        src={pendingPhoto.url}
+                        alt="追加する写真"
+                        className="w-14 h-14 object-cover rounded-lg border border-slate-200"
+                      />
+                      <span className="flex-1 text-xs text-slate-600 leading-snug">
+                        この写真も一緒に記録します
+                        <br />
+                        （記念フレーム付き）
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void removePendingPhoto()}
+                        className="press shrink-0 text-xs text-red-500 px-2 py-1"
+                      >
+                        削除
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileRef.current?.click()}
+                      className="press w-full border border-dashed border-slate-300 text-slate-500 py-2.5 rounded-xl text-sm"
+                    >
+                      📷 写真を追加（任意）
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => setSheet(null)}
@@ -479,11 +572,40 @@ export default function BoardView() {
               <div className="mt-4 space-y-2">
                 <button
                   type="button"
-                  onClick={() => void recordVisit(sheetTemple.id)}
+                  onClick={() => confirmRecord(sheetTemple.id)}
                   className="press w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-3 rounded-xl font-semibold"
                 >
                   今日また参拝を記録（{formatMD(today())}）
                 </button>
+                {pendingPhoto ? (
+                  <div className="flex items-center gap-3 border border-slate-200 rounded-xl p-2.5">
+                    <img
+                      src={pendingPhoto.url}
+                      alt="追加する写真"
+                      className="w-14 h-14 object-cover rounded-lg border border-slate-200"
+                    />
+                    <span className="flex-1 text-xs text-slate-600 leading-snug">
+                      この写真も一緒に記録します
+                      <br />
+                      （記念フレーム付き）
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void removePendingPhoto()}
+                      className="press shrink-0 text-xs text-red-500 px-2 py-1"
+                    >
+                      削除
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="press w-full border border-dashed border-slate-300 text-slate-500 py-2.5 rounded-xl text-sm"
+                  >
+                    📷 写真を追加（任意）
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => navigate(`/temple/${sheetTemple.id}`, { viewTransition: true })}
@@ -503,6 +625,9 @@ export default function BoardView() {
           </div>
         </div>
       )}
+
+      {/* 押印直後の記念フレーム表示 */}
+      {viewer && <PhotoViewer items={[viewer]} initialIndex={0} onClose={closeViewer} />}
     </div>
   );
 }
