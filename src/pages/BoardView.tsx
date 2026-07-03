@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Visit } from '../db/db';
 import { TEMPLES } from '../data/temples';
+import henroMapBg from '../assets/img/henro-map-bg.jpg';
 
 const TEMPLE = new Map(TEMPLES.map((t) => [t.id, t]));
 
@@ -27,10 +28,6 @@ function formatMD(iso: string): string {
   const [, m, d] = iso.split('-');
   return `${+m}/${+d}`;
 }
-
-// 背景にうっすら敷く四国のシルエット（viewBox 0 0 680 500）
-const SHIKOKU_PATH =
-  'M175 205 C235 158 430 142 520 178 C562 196 582 232 560 275 C548 302 532 304 524 332 L556 418 L512 392 C472 360 432 415 364 426 C305 434 252 438 208 414 L168 452 L180 398 C142 368 128 318 152 272 C160 238 162 224 175 205 Z';
 
 // 巡拝路の蛇行：札所番号ごとに左右へ揺れる x 位置（節点の帯 0〜100%）
 const TRAIL_AMP = 22;
@@ -199,15 +196,14 @@ export default function BoardView() {
         </div>
       )}
 
-      {/* 四国のシルエットを薄く敷く（巡礼の舞台） */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
-        style={{ opacity: 0.06 }}
-      >
-        <svg viewBox="0 0 680 500" preserveAspectRatio="xMidYMid meet" style={{ width: '155%' }}>
-          <path d={SHIKOKU_PATH} fill="#1f5b8c" />
-        </svg>
+      {/* 背景に四国八十八か所の絵地図を薄く敷く（巡礼の舞台） */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-white">
+        <img
+          src={henroMapBg}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          style={{ opacity: 0.12 }}
+        />
       </div>
 
       <div className="relative z-10">
