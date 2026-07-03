@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet } from 'react-router-dom';
 
 const tabs = [
   { to: '/', label: '札所', icon: '⛩' },
@@ -8,23 +8,9 @@ const tabs = [
 ];
 
 export default function Layout() {
-  const location = useLocation();
-  // 参拝の記録はすごろく盤(/board)で行う。フォーム編集中と盤自身ではFABを隠す
-  const hideFab = location.pathname.startsWith('/visit/') || location.pathname === '/board';
-
   return (
     <div className="relative min-h-screen max-w-md mx-auto bg-white text-slate-800 pb-16 shadow-sm">
       <Outlet />
-
-      {!hideFab && (
-        <NavLink
-          to="/board"
-          className="fixed bottom-20 right-[calc(50%-13rem)] sm:right-[calc(50%-13rem)] z-20 w-14 h-14 rounded-full bg-[#1f5b8c] text-white text-3xl grid place-items-center shadow-lg active:bg-[#16446b]"
-          aria-label="参拝を記録"
-        >
-          ＋
-        </NavLink>
-      )}
 
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-slate-200 grid grid-cols-4 z-10">
         {tabs.map((t) => (

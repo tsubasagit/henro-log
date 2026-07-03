@@ -104,8 +104,8 @@ export default function BoardView() {
 
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10 flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-bold text-[#1f5b8c]">参拝を記録</h1>
-          <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して今日の参拝を記録</p>
+          <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
+          <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して押印（今日の参拝を記録）</p>
         </div>
         <div className="text-right">
           <span className="text-2xl font-bold text-[#c0392b] leading-none">{visitedCount}</span>
