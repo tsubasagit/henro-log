@@ -1,12 +1,23 @@
 @import "tailwindcss";
 
-/* 御朱印/納経帳ふうの毛筆体（Yuji Syuku をサブセット同梱）。すごろく盤の数字・済スタンプ用 */
+/* 御朱印/納経帳ふうの毛筆体（Yuji Syuku をサブセット同梱）。
+   数字・済スタンプに加え、見出し（遍路ログ/札所/記録/写真/設定/満願成就/道場名）にも使う */
 @font-face {
   font-family: "Yuji Board";
   src: url("./assets/fonts/yuji-board-subset.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
+}
+
+:root {
+  /* 遍路ログ デザイントークン */
+  --henro-indigo: #1f5b8c; /* 藍（構造・進捗） */
+  --henro-indigo-deep: #16446b;
+  --henro-vermilion: #c0392b; /* 朱（押印・達成） */
+  --henro-washi: #f6f1e4; /* 和紙 */
+  --henro-washi-deep: #f1e7d0;
+  --henro-sumi: #1f2937; /* 墨 */
 }
 
 html,
@@ -17,8 +28,23 @@ body,
 
 body {
   margin: 0;
-  background: #f8fafc;
+  background: #efe9db; /* アプリ枠の外は和紙の生成り */
   -webkit-font-smoothing: antialiased;
   font-family: system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN",
     "Noto Sans JP", Meiryo, sans-serif;
+  overscroll-behavior-y: none;
+}
+
+/* 毛筆見出し */
+.font-brush {
+  font-family: "Yuji Board", "Yu Mincho", serif;
+  letter-spacing: 0.06em;
+}
+
+/* タップの押し込みフィードバック（行・ボタン共通） */
+.press {
+  transition: transform 0.12s ease, background-color 0.15s ease;
+}
+.press:active {
+  transform: scale(0.97);
 }

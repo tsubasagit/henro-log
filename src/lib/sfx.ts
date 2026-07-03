@@ -22,6 +22,12 @@ export function playStamp(): void {
     stampEl.volume = 0.5;
   }
   play(stampEl);
+  // 対応端末では、押印の手応えとして短い振動も返す
+  try {
+    navigator.vibrate?.(12);
+  } catch {
+    // no-op
+  }
 }
 
 /** 八十八ヶ所 満願（すべて達成）のお祝いファンファーレ */

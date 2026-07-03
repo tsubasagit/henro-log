@@ -49,8 +49,10 @@ export default function Layout() {
       <Outlet />
 
       <nav
-        className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md grid grid-cols-4 z-10 transition-colors duration-300 ${
-          scrolling ? 'bg-transparent border-t border-transparent' : 'bg-white border-t border-slate-200'
+        className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md grid grid-cols-4 z-10 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] ${
+          scrolling
+            ? 'bg-transparent border-t border-transparent'
+            : 'bg-white/95 backdrop-blur border-t border-slate-200'
         }`}
       >
         {tabs.map((t) => (
@@ -59,11 +61,25 @@ export default function Layout() {
             to={t.to}
             end={t.to === '/'}
             className={({ isActive }) =>
-              `flex flex-col items-center py-2 text-xs ${isActive ? 'text-[#1f5b8c]' : 'text-slate-400'}`
+              `press flex flex-col items-center pt-1.5 pb-2 text-xs ${
+                isActive ? 'text-[#1f5b8c]' : 'text-slate-400'
+              }`
             }
           >
-            <span className="text-lg leading-none">{t.icon}</span>
-            <span className="mt-0.5">{t.label}</span>
+            {({ isActive }) => (
+              <>
+                <span
+                  className={`grid place-items-center h-7 px-4 rounded-full text-base leading-none transition-colors ${
+                    isActive ? 'bg-[#1f5b8c]/10' : 'bg-transparent'
+                  }`}
+                >
+                  {t.icon}
+                </span>
+                <span className={`mt-0.5 font-brush text-[13px] ${isActive ? 'font-semibold' : ''}`}>
+                  {t.label}
+                </span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>

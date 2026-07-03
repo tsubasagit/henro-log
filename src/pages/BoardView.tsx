@@ -235,12 +235,12 @@ export default function BoardView() {
       >
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
-            <p className="text-sm text-slate-500 mt-0.5">行った札所をタップ→確認して押印</p>
+            <h1 className="font-brush text-2xl text-[#1f5b8c] leading-none">遍路ログ</h1>
+            <p className="text-[13px] text-slate-500 mt-1">行った札所をタップ→確認して押印</p>
           </div>
           <div className="text-right leading-none">
-            <span className="text-2xl font-bold text-[#c0392b]">{visitedCount}</span>
-            <span className="text-sm text-slate-400"> / 88</span>
+            <span className="font-brush text-3xl text-[#c0392b]">{visitedCount}</span>
+            <span className="font-brush text-sm text-slate-400"> / 88</span>
           </div>
         </div>
         {/* 住職が歩いて進む進捗バー */}
@@ -270,8 +270,9 @@ export default function BoardView() {
         const regionClear = regionDone === regionTotal;
         return (
           <section key={region.label}>
-            <h2 className="px-4 pt-4 pb-1 flex items-center gap-2 text-sm font-semibold text-slate-500">
-              <span>{region.label}</span>
+            <h2 className="px-4 pt-5 pb-1.5 flex items-center gap-2 text-sm font-semibold text-slate-600">
+              <span className="inline-block w-1 h-4 rounded-full bg-[#c0392b]/70" aria-hidden="true" />
+              <span className="tracking-wide">{region.label}</span>
               {regionClear ? (
                 <span className="text-[11px] font-bold text-[#c0392b] border border-[#c0392b] rounded px-1.5 py-0.5">
                   満願
@@ -300,7 +301,9 @@ export default function BoardView() {
                     <button
                       type="button"
                       onClick={() => handleTap(t.id)}
-                      className="flex w-full text-left active:bg-slate-50 min-h-[68px]"
+                      className={`press flex w-full text-left min-h-[68px] ${
+                        isNext ? 'bg-[#c0392b]/[0.045]' : 'active:bg-slate-50'
+                      }`}
                       aria-label={`第${t.id}番 ${t.name}${visited ? `・${count}回参拝済` : isNext ? '・次の札所' : '・未参拝'}（タップで${visited ? '確認' : '参拝を記録'}）`}
                     >
                       {/* 蛇行する巡拝路（歩いた分は朱色）＋スタンプ節点 */}
@@ -397,11 +400,17 @@ export default function BoardView() {
       {/* トースト */}
       {toast && (
         <div
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 max-w-[22rem] w-[calc(100%-2rem)] bg-[#1f3a52] text-white text-sm px-4 py-2.5 rounded-lg shadow-lg text-center"
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-30 max-w-[22rem] w-[calc(100%-2rem)] bg-[#1f3a52]/95 backdrop-blur text-white text-sm pl-3 pr-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2.5"
           style={{ animation: 'henroFade 0.2s ease both' }}
           role="status"
         >
-          {toast}
+          <span
+            className="font-brush shrink-0 w-7 h-7 rounded-full grid place-items-center bg-[#c0392b] text-white text-base"
+            aria-hidden="true"
+          >
+            済
+          </span>
+          <span className="flex-1 text-left leading-snug">{toast}</span>
         </div>
       )}
 
@@ -412,9 +421,9 @@ export default function BoardView() {
           style={{ animation: 'henroFade 0.15s ease both' }}
           onClick={() => setSheet(null)}
         >
-          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" />
           <div
-            className="relative w-full max-w-md bg-white rounded-t-2xl px-5 pt-4 pb-6 shadow-xl"
+            className="relative w-full max-w-md bg-white rounded-t-3xl px-5 pt-4 shadow-xl pb-[calc(1.5rem+env(safe-area-inset-bottom))]"
             style={{ animation: 'henroSheetUp 0.24s cubic-bezier(0.22,1,0.36,1) both' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -452,14 +461,14 @@ export default function BoardView() {
                       setSheet(null);
                       void recordVisit(id);
                     }}
-                    className="w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
+                    className="press w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-3 rounded-xl font-semibold"
                   >
                     参拝を記録する（{formatMD(today())}）
                   </button>
                   <button
                     type="button"
                     onClick={() => setSheet(null)}
-                    className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold active:bg-slate-50"
+                    className="press w-full border border-slate-200 text-slate-700 py-3 rounded-xl font-semibold active:bg-slate-50"
                   >
                     キャンセル
                   </button>
@@ -470,21 +479,21 @@ export default function BoardView() {
                 <button
                   type="button"
                   onClick={() => void recordVisit(sheetTemple.id)}
-                  className="w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
+                  className="press w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-3 rounded-xl font-semibold"
                 >
                   今日また参拝を記録（{formatMD(today())}）
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate(`/temple/${sheetTemple.id}`)}
-                  className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-lg font-semibold active:bg-slate-50"
+                  className="press w-full border border-slate-200 text-slate-700 py-3 rounded-xl font-semibold active:bg-slate-50"
                 >
                   詳細・写真を見る →
                 </button>
                 <button
                   type="button"
                   onClick={() => void undoLatest(sheetTemple.id)}
-                  className="w-full text-red-500 py-2 rounded-lg font-medium active:bg-red-50"
+                  className="press w-full text-red-500 py-2 rounded-xl font-medium active:bg-red-50"
                 >
                   最新の記録を取り消す
                 </button>

@@ -27,7 +27,11 @@ export default defineConfig(({ command }) => {
           lang: 'ja',
           start_url: base,
           scope: base,
-          icons: [],
+          icons: [
+            { src: 'pwa-192.png', sizes: '192x192', type: 'image/png' },
+            { src: 'pwa-512.png', sizes: '512x512', type: 'image/png' },
+            { src: 'pwa-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          ],
         },
       }),
     ],

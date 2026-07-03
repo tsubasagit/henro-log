@@ -65,7 +65,7 @@ export default function Settings() {
   return (
     <div>
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
-        <h1 className="text-lg font-bold text-[#1f5b8c]">設定</h1>
+        <h1 className="font-brush text-2xl text-[#1f5b8c] leading-none">設定</h1>
       </header>
 
       <div className="p-4 space-y-6">

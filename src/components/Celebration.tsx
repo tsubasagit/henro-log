@@ -105,7 +105,7 @@ export default function Celebration() {
         <button
           type="button"
           onClick={() => setShow(false)}
-          className="mt-5 w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-2.5 rounded-lg font-semibold"
+          className="press mt-5 w-full bg-[#1f5b8c] hover:bg-[#16446b] text-white py-3 rounded-xl font-semibold"
         >
           とじる
         </button>

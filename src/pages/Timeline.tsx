@@ -16,7 +16,7 @@ export default function Timeline() {
   return (
     <div>
       <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-10">
-        <h1 className="text-lg font-bold text-[#1f5b8c]">タイムライン</h1>
+        <h1 className="font-brush text-2xl text-[#1f5b8c] leading-none">記録</h1>
         <p className="text-sm text-slate-500 mt-0.5">のべ {visits.length} 回の参拝</p>
       </header>
 
