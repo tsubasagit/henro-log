@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type Visit } from '../db/db';
 import { TEMPLES } from '../data/temples';
+import { useIsScrolling } from '../lib/useIsScrolling';
 import henroMapBg from '../assets/img/henro-map-bg.jpg';
 
 const TEMPLE = new Map(TEMPLES.map((t) => [t.id, t]));
@@ -45,6 +46,7 @@ const CONFETTI = Array.from({ length: 18 }, (_, i) => ({
 
 export default function BoardView() {
   const navigate = useNavigate();
+  const scrolling = useIsScrolling(); // スクロール中はヘッダーを透明にして背景を見せる
   const visits = useLiveQuery(() => db.visits.toArray(), []);
   const [sheet, setSheet] = useState<number | null>(null); // 確認シートを開いている札所番号
   const [toast, setToast] = useState<string | null>(null);
@@ -207,7 +209,11 @@ export default function BoardView() {
       </div>
 
       <div className="relative z-10">
-      <header className="sticky top-0 bg-white border-b border-slate-200 px-4 py-3 z-20">
+      <header
+        className={`sticky top-0 px-4 py-3 z-20 transition-colors duration-300 ${
+          scrolling ? 'bg-transparent border-b border-transparent' : 'bg-white border-b border-slate-200'
+        }`}
+      >
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-[#1f5b8c]">札所</h1>
