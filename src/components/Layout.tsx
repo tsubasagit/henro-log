@@ -45,6 +45,33 @@ export default function Layout() {
   return (
     <div className="relative min-h-screen max-w-md mx-auto bg-white text-slate-800 pb-16 shadow-sm">
       <audio ref={audioRef} src={bgmSrc} loop preload="auto" />
+
+      {/* 押印の墨だまり・かすれ用 SVG フィルタ（.ink-a/b/c から参照。全画面で使う） */}
+      <svg width="0" height="0" className="absolute" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id="henro-ink-a" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="2.4" />
+          </filter>
+          <filter id="henro-ink-b" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="11" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="3" />
+          </filter>
+          <filter id="henro-ink-c" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="3" seed="23" result="n" />
+            <feDisplacementMap in="SourceGraphic" in2="n" scale="2" result="disp" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.28" numOctaves="3" seed="7" result="rough" />
+            <feColorMatrix
+              in="rough"
+              type="matrix"
+              values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 10 -3.2"
+              result="mask"
+            />
+            <feComposite in="disp" in2="mask" operator="in" />
+          </filter>
+        </defs>
+      </svg>
+
       <Celebration />
       <Outlet />
 
@@ -60,6 +87,7 @@ export default function Layout() {
             key={t.to}
             to={t.to}
             end={t.to === '/'}
+            viewTransition
             className={({ isActive }) =>
               `press flex flex-col items-center pt-1.5 pb-2 text-xs ${
                 isActive ? 'text-[#1f5b8c]' : 'text-slate-400'

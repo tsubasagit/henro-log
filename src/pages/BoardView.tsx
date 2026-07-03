@@ -291,6 +291,7 @@ export default function BoardView() {
                 const walked = t.id <= furthest; // 歩いた道（現在地まで）
                 const isNext = t.id === nextId; // 次に行く札所
                 const rot = ((t.id * 37) % 7) - 3; // -3〜3度、手押しっぽい微回転
+                const ink = ['ink-a', 'ink-b', 'ink-c'][t.id % 3]; // 墨だまり・かすれの個体差
                 // 蛇行する巡拝路：この節点と上下の中点を結ぶ滑らかな曲線（道場の端で閉じる）
                 const thisX = trailX(t.id);
                 const topX = t.id === region.from ? thisX : (trailX(t.id - 1) + thisX) / 2;
@@ -333,7 +334,7 @@ export default function BoardView() {
                               <span className="block" style={{ transform: `rotate(${rot}deg)` }}>
                                 <span
                                   key={`stamp-${count}`}
-                                  className="henro-stamp-html block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold"
+                                  className={`henro-stamp-html ${ink} block w-11 h-11 rounded-full grid place-items-center border-2 border-[#c0392b] text-[#c0392b] text-xl font-bold`}
                                   style={{ background: 'rgba(192,57,43,0.12)', fontFamily: "'Yuji Board', serif" }}
                                 >
                                   済
@@ -405,7 +406,7 @@ export default function BoardView() {
           role="status"
         >
           <span
-            className="font-brush shrink-0 w-7 h-7 rounded-full grid place-items-center bg-[#c0392b] text-white text-base"
+            className="font-brush ink-a shrink-0 w-7 h-7 rounded-full grid place-items-center bg-[#c0392b] text-white text-base"
             aria-hidden="true"
           >
             済
@@ -485,7 +486,7 @@ export default function BoardView() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate(`/temple/${sheetTemple.id}`)}
+                  onClick={() => navigate(`/temple/${sheetTemple.id}`, { viewTransition: true })}
                   className="press w-full border border-slate-200 text-slate-700 py-3 rounded-xl font-semibold active:bg-slate-50"
                 >
                   詳細・写真を見る →

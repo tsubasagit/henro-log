@@ -48,3 +48,40 @@ body {
 .press:active {
   transform: scale(0.97);
 }
+
+/* 押印の墨だまり・かすれ（Layout の SVG フィルタ定義を参照。札所ごとに3種を使い分け） */
+.ink-a {
+  filter: url(#henro-ink-a);
+}
+.ink-b {
+  filter: url(#henro-ink-b);
+}
+.ink-c {
+  filter: url(#henro-ink-c);
+}
+
+/* 画面遷移（View Transitions API 対応ブラウザのみ。非対応は即時切替） */
+@keyframes henro-vt-out {
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes henro-vt-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+::view-transition-old(root) {
+  animation: henro-vt-out 0.16s ease both;
+}
+::view-transition-new(root) {
+  animation: henro-vt-in 0.2s ease 0.04s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
