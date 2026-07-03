@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useIsScrolling } from '../lib/useIsScrolling';
 import { useMusicOn } from '../lib/music';
+import Celebration from './Celebration';
 import bgmSrc from '../assets/audio/henro-bgm.mp3';
 
 const tabs = [
@@ -44,6 +45,7 @@ export default function Layout() {
   return (
     <div className="relative min-h-screen max-w-md mx-auto bg-white text-slate-800 pb-16 shadow-sm">
       <audio ref={audioRef} src={bgmSrc} loop preload="auto" />
+      <Celebration />
       <Outlet />
 
       <nav

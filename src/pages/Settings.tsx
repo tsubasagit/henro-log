@@ -1,7 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
+import { TEMPLES } from '../data/temples';
 import { useMusicOn, setMusicOn } from '../lib/music';
+
+function today(): string {
+  const d = new Date();
+  const m = `${d.getMonth() + 1}`.padStart(2, '0');
+  const day = `${d.getDate()}`.padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
+}
 
 export default function Settings() {
   const profile = useLiveQuery(() => db.profile.get(1), []);
@@ -23,6 +31,32 @@ export default function Settings() {
     await db.profile.put({ id: 1, name: name.trim(), email: email.trim() });
     setSaved(true);
     window.setTimeout(() => setSaved(false), 2000);
+  }
+
+  /** デモ用：まだ参拝していない札所すべてに今日の日付で一括押印する */
+  async function stampAll() {
+    const have = new Set((await db.visits.toArray()).map((v) => v.templeId));
+    const missing = TEMPLES.filter((t) => !have.has(t.id));
+    if (missing.length === 0) return;
+    const now = Date.now();
+    await db.visits.bulkAdd(
+      missing.map((t, i) => ({
+        templeId: t.id,
+        visitedOn: today(),
+        companionIds: [],
+        photoIds: [],
+        nokyo: false,
+        createdAt: now + i,
+        updatedAt: now + i,
+      })),
+    );
+  }
+
+  /** デモ用：全参拝記録を消去（写真も削除） */
+  async function resetAll() {
+    if (!window.confirm('すべての参拝記録を消去しますか？（この端末のみ）')) return;
+    await db.photos.clear();
+    await db.visits.clear();
   }
 
   const labelCls = 'block text-sm font-semibold text-slate-600 mb-1';
@@ -106,6 +140,29 @@ export default function Settings() {
           </button>
           <p className="text-xs text-slate-400 mt-2">
             ※ 端末に保存します。オフのときは音は鳴りません。
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-slate-600 mb-2">デモ・お試し</h2>
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={stampAll}
+              className="w-full bg-[#c0392b] hover:bg-[#a5301f] text-white py-2.5 rounded-lg font-semibold"
+            >
+              全札所に一気に押印する 🖌
+            </button>
+            <button
+              type="button"
+              onClick={resetAll}
+              className="w-full border border-slate-200 text-slate-600 py-2.5 rounded-lg font-medium active:bg-slate-50"
+            >
+              参拝記録をすべて消去（リセット）
+            </button>
+          </div>
+          <p className="text-xs text-slate-400 mt-2">
+            ※ お披露目・お試し用。押すと八十八ヶ所すべてに今日の日付で押印し、満願のお祝いが流れます。
           </p>
         </section>
 
