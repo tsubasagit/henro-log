@@ -9,6 +9,7 @@
 - Dexie.js（IndexedDB / ローカルファースト）
 - vite-plugin-pwa（インストール可能・オフライン対応）
 - React Router（画面遷移）
+- Firebase Authentication（Google ＋ メール/パスワード。ログイン必須ゲート）
 - 札所マスタは静的JSON（88件）を同梱
 
 ## Directory Structure
@@ -24,5 +25,6 @@
 - TypeScript を使用する
 - コンポーネントは PascalCase
 - 日本語UIテキスト
-- ローカルファースト（MVPはサーバ・認証なし、端末内完結）
+- 認証は Firebase Authentication（ログイン必須ゲート＝`src/auth/AuthGate.tsx`）。Firebase 設定値は `.env.local`（`VITE_FIREBASE_*`）＋ `src/lib/firebase.ts` の公開フォールバック。Firebase プロジェクト = `henro-log-ath`
+- 参拝データはローカルファースト（IndexedDB / 端末内完結）。クラウド同期は将来対応
 - データモデルは SERVICE_SPEC.md を正とする。変更時は両方を更新する

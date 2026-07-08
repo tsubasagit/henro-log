@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db/db';
 import { TEMPLES } from '../data/temples';
 import { useMusicOn, setMusicOn } from '../lib/music';
+import { useAuth } from '../auth/AuthContext';
 
 function today(): string {
   const d = new Date();
@@ -12,8 +13,10 @@ function today(): string {
 }
 
 export default function Settings() {
-  const profile = useLiveQuery(() => db.profile.get(1), []);
+  // 未保存なら null（レコードなし）、読み込み中は undefined を区別する
+  const profile = useLiveQuery(() => db.profile.get(1).then((p) => p ?? null), []);
   const musicOn = useMusicOn();
+  const { user, signOut } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [loaded, setLoaded] = useState(false);
@@ -21,11 +24,17 @@ export default function Settings() {
 
   useEffect(() => {
     if (loaded) return;
-    if (profile === undefined) return;
-    setName(profile.name);
-    setEmail(profile.email);
+    if (profile === undefined) return; // まだ読み込み中
+    // ローカルに未保存なら、ログイン中アカウントの情報で初期化する
+    setName(profile?.name || user?.displayName || '');
+    setEmail(profile?.email || user?.email || '');
     setLoaded(true);
-  }, [profile, loaded]);
+  }, [profile, loaded, user]);
+
+  async function handleSignOut() {
+    if (!window.confirm('ログアウトしますか？')) return;
+    await signOut();
+  }
 
   async function save() {
     await db.profile.put({ id: 1, name: name.trim(), email: email.trim() });
@@ -109,8 +118,41 @@ export default function Settings() {
             {saved && <p className="text-sm text-green-600 text-center">保存しました</p>}
           </div>
           <p className="text-xs text-slate-400 mt-3">
-            ※ 現在は入力内容をこの端末に保存します。ユーザー認証は今後実装予定です。
+            ※ ここで入力した表示名・連絡先はこの端末に保存します。
           </p>
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-slate-600 mb-2">アカウント</h2>
+          <div className="border border-slate-200 rounded-lg px-4 py-3 flex items-center gap-3">
+            {user?.photoURL ? (
+              <img
+                src={user.photoURL}
+                alt=""
+                referrerPolicy="no-referrer"
+                className="w-10 h-10 rounded-full object-cover"
+              />
+            ) : (
+              <span className="w-10 h-10 rounded-full bg-[#1f5b8c]/10 grid place-items-center text-[#1f5b8c] text-lg">
+                {(user?.displayName || user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+            <span className="min-w-0">
+              {user?.displayName && (
+                <span className="block font-medium text-slate-800 truncate">
+                  {user.displayName}
+                </span>
+              )}
+              <span className="block text-sm text-slate-500 truncate">{user?.email}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={handleSignOut}
+            className="w-full mt-2 border border-slate-200 text-slate-600 py-2.5 rounded-lg font-medium active:bg-slate-50"
+          >
+            ログアウト
+          </button>
         </section>
 
         <section>
