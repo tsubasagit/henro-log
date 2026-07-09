@@ -9,6 +9,7 @@ const tabs = [
   { to: '/', label: '札所', icon: '⛩' },
   { to: '/timeline', label: '記録', icon: '🕒' },
   { to: '/album', label: '写真', icon: '🖼' },
+  { to: '/nearby', label: '地図', icon: '📍' },
   { to: '/settings', label: '設定', icon: '⚙' },
 ];
 
@@ -76,7 +77,7 @@ export default function Layout() {
       <Outlet />
 
       <nav
-        className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md grid grid-cols-4 z-10 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] ${
+        className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md grid grid-cols-5 z-10 transition-colors duration-300 pb-[env(safe-area-inset-bottom)] ${
           scrolling
             ? 'bg-transparent border-t border-transparent'
             : 'bg-white/95 backdrop-blur border-t border-slate-200'
