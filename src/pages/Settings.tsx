@@ -32,7 +32,10 @@ export default function Settings() {
   }, [profile, loaded, user]);
 
   async function handleSignOut() {
-    if (!window.confirm('ログアウトしますか？')) return;
+    const msg = user?.isAnonymous
+      ? '登録・ログイン画面に移動します。記録はこの端末に残ります。よろしいですか？'
+      : 'ログアウトしますか？';
+    if (!window.confirm(msg)) return;
     await signOut();
   }
 
@@ -125,7 +128,11 @@ export default function Settings() {
         <section>
           <h2 className="text-sm font-semibold text-slate-600 mb-2">アカウント</h2>
           <div className="border border-slate-200 rounded-lg px-4 py-3 flex items-center gap-3">
-            {user?.photoURL ? (
+            {user?.isAnonymous ? (
+              <span className="w-10 h-10 rounded-full bg-slate-100 grid place-items-center text-slate-500 text-lg">
+                👤
+              </span>
+            ) : user?.photoURL ? (
               <img
                 src={user.photoURL}
                 alt=""
@@ -138,12 +145,23 @@ export default function Settings() {
               </span>
             )}
             <span className="min-w-0">
-              {user?.displayName && (
-                <span className="block font-medium text-slate-800 truncate">
-                  {user.displayName}
-                </span>
+              {user?.isAnonymous ? (
+                <>
+                  <span className="block font-medium text-slate-800">ゲストとして利用中</span>
+                  <span className="block text-sm text-slate-500">
+                    記録はこの端末に保存されます
+                  </span>
+                </>
+              ) : (
+                <>
+                  {user?.displayName && (
+                    <span className="block font-medium text-slate-800 truncate">
+                      {user.displayName}
+                    </span>
+                  )}
+                  <span className="block text-sm text-slate-500 truncate">{user?.email}</span>
+                </>
               )}
-              <span className="block text-sm text-slate-500 truncate">{user?.email}</span>
             </span>
           </div>
           <button
@@ -151,7 +169,7 @@ export default function Settings() {
             onClick={handleSignOut}
             className="w-full mt-2 border border-slate-200 text-slate-600 py-2.5 rounded-lg font-medium active:bg-slate-50"
           >
-            ログアウト
+            {user?.isAnonymous ? 'アカウント登録・ログインへ' : 'ログアウト'}
           </button>
         </section>
 

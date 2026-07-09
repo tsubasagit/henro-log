@@ -4,6 +4,7 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
   signOut as fbSignOut,
   updateProfile,
   type User,
@@ -17,6 +18,8 @@ interface AuthContextValue {
   signInWithGoogle: () => Promise<void>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string, displayName?: string) => Promise<void>;
+  /** ゲスト（匿名）ログイン。登録なしでアプリを閲覧できる */
+  signInAsGuest: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -49,13 +52,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function signInAsGuest() {
+    await signInAnonymously(auth);
+  }
+
   async function signOut() {
     await fbSignOut(auth);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut }}
+      value={{
+        user,
+        loading,
+        signInWithGoogle,
+        signInWithEmail,
+        signUpWithEmail,
+        signInAsGuest,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>
@@ -90,6 +105,7 @@ export function authErrorMessage(err: unknown): string {
     case 'auth/cancelled-popup-request':
       return 'ログインがキャンセルされました。';
     case 'auth/operation-not-allowed':
+    case 'auth/admin-restricted-operation':
       return 'この認証方法は現在無効です。管理者にお問い合わせください。';
     case 'auth/network-request-failed':
       return 'ネットワークエラーが発生しました。接続を確認してください。';

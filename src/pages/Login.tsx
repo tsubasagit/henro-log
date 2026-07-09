@@ -4,7 +4,7 @@ import { useAuth, authErrorMessage } from '../auth/AuthContext';
 type Mode = 'signin' | 'signup';
 
 export default function Login() {
-  const { signInWithGoogle, signInWithEmail, signUpWithEmail } = useAuth();
+  const { signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest } = useAuth();
   const [mode, setMode] = useState<Mode>('signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,6 +18,17 @@ export default function Login() {
     try {
       await signInWithGoogle();
       // 成功すると onAuthStateChanged がゲートを解除する
+    } catch (err) {
+      setError(authErrorMessage(err));
+      setBusy(false);
+    }
+  }
+
+  async function handleGuest() {
+    setError('');
+    setBusy(true);
+    try {
+      await signInAsGuest();
     } catch (err) {
       setError(authErrorMessage(err));
       setBusy(false);
@@ -143,9 +154,20 @@ export default function Login() {
           : 'すでにアカウントをお持ちの方はこちら（ログイン）'}
       </button>
 
-      <p className="text-xs text-slate-400 text-center mt-8 leading-relaxed">
-        ログインすると、参拝の記録を安全に保存・同期できます。
-      </p>
+      <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+        <button
+          type="button"
+          onClick={handleGuest}
+          disabled={busy}
+          className="w-full border border-slate-300 text-slate-600 py-2.5 rounded-lg font-medium active:bg-slate-50 disabled:opacity-60"
+        >
+          登録せずにゲストで試す
+        </button>
+        <p className="text-xs text-slate-400 mt-3 leading-relaxed">
+          ゲストでもすぐに全機能を試せます。記録はこの端末に保存され、
+          あとから登録すると引き継げます。
+        </p>
+      </div>
     </div>
   );
 }
