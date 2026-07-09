@@ -7,7 +7,7 @@
 - Vite + React + TypeScript
 - Tailwind CSS（スタイリング）
 - Dexie.js（IndexedDB / ローカルファースト）
-- vite-plugin-pwa（インストール可能・オフライン対応）
+- vite-plugin-pwa（インストール可能・オフライン対応。`registerType: 'prompt'` ＝新版検知時に `src/components/PwaUpdatePrompt.tsx` の更新通知を表示）
 - React Router（画面遷移）
 - Firebase Authentication（Google ＋ メール/パスワード。ログイン必須ゲート）
 - 現在地→最寄り札所は `navigator.geolocation` ＋ ハバーサイン（`src/lib/geo.ts`）。地図は Google マップへのリンク方式（APIキー不要）＝`src/pages/NearbyView.tsx`（`/nearby` 地図タブ）

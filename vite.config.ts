@@ -16,7 +16,8 @@ export default defineConfig(({ command }) => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'autoUpdate',
+        // 新バージョンを検知したらアプリ内で「更新」通知を出す（PwaUpdatePrompt）
+        registerType: 'prompt',
         manifest: {
           name: '遍路ログ henro-log',
           short_name: '遍路ログ',
