@@ -230,6 +230,22 @@ export default function Settings() {
           <h2 className="text-sm font-semibold text-slate-600 mb-2">このアプリ</h2>
           <p className="text-sm text-slate-500">遍路ログ henro-log — 四国八十八ヶ所の巡拝記録（MVP）</p>
         </section>
+
+        <section>
+          <h2 className="text-sm font-semibold text-slate-600 mb-2">開発について</h2>
+          <p className="text-sm text-slate-500 leading-relaxed">
+            このアプリは <span className="font-medium text-slate-700">AppTalentHub 株式会社</span>{' '}
+            が企画・開発しています。アプリ開発のご相談・お問い合わせはこちらから。
+          </p>
+          <a
+            href="https://forms.apptalenthub.co.jp/contact?utm_source=https://apptalenthub.co.jp/henro"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 w-full inline-flex items-center justify-center gap-1.5 border border-[#1f5b8c] text-[#1f5b8c] hover:bg-[#1f5b8c] hover:text-white active:bg-[#1f5b8c] active:text-white py-2.5 rounded-lg font-semibold transition-colors"
+          >
+            AppTalentHub に問い合わせる →
+          </a>
+        </section>
       </div>
     </div>
   );

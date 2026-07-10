@@ -66,32 +66,49 @@ export interface GeoError {
   message: string;
 }
 
-/** 現在地を1回だけ取得する Promise ラッパー。失敗時は日本語メッセージ付きの GeoError を返す。 */
-export function getCurrentPosition(): Promise<LatLng> {
+/** GeolocationPositionError を日本語メッセージ付きの GeoError に変換する。 */
+function toGeoError(err: GeolocationPositionError): GeoError {
+  const map: Record<number, GeoError> = {
+    1: { kind: 'denied', message: '位置情報の利用が許可されていません。ブラウザ/端末の設定から許可してください。' },
+    2: { kind: 'unavailable', message: '現在地を取得できませんでした。電波状況の良い場所で再度お試しください。' },
+    3: { kind: 'timeout', message: '現在地の取得がタイムアウトしました。もう一度お試しください。' },
+  };
+  return map[err.code] ?? { kind: 'unavailable', message: '現在地を取得できませんでした。' };
+}
+
+/** 指定オプションで1回だけ測位する Promise ラッパー。 */
+function requestPosition(options: PositionOptions): Promise<LatLng> {
   return new Promise((resolve, reject) => {
-    if (!('geolocation' in navigator)) {
-      reject({ kind: 'unsupported', message: 'この端末では位置情報を利用できません。' } as GeoError);
-      return;
-    }
-    // 位置情報は安全なコンテキスト（HTTPS）でのみ動作する
-    if (!window.isSecureContext) {
-      reject({
-        kind: 'insecure',
-        message: 'HTTPS でのアクセス時のみ現在地を取得できます。',
-      } as GeoError);
-      return;
-    }
     navigator.geolocation.getCurrentPosition(
       (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      (err) => {
-        const map: Record<number, GeoError> = {
-          1: { kind: 'denied', message: '位置情報の利用が許可されていません。ブラウザ/端末の設定から許可してください。' },
-          2: { kind: 'unavailable', message: '現在地を取得できませんでした。電波状況の良い場所で再度お試しください。' },
-          3: { kind: 'timeout', message: '現在地の取得がタイムアウトしました。もう一度お試しください。' },
-        };
-        reject(map[err.code] ?? { kind: 'unavailable', message: '現在地を取得できませんでした。' });
-      },
-      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+      (err) => reject(toGeoError(err)),
+      options,
     );
   });
+}
+
+/**
+ * 現在地を取得する。失敗時は日本語メッセージ付きの GeoError を投げる。
+ * まず高精度GPSで測位し、初回コールドスタートで手間取っても失敗しにくいよう
+ * タイムアウトを長めに取る。それでも取れなければ Wi-Fi・基地局ベースの粗い測位に
+ * フォールバックする（最寄り札所の判定には十分）。
+ */
+export async function getCurrentPosition(): Promise<LatLng> {
+  if (!('geolocation' in navigator)) {
+    throw { kind: 'unsupported', message: 'この端末では位置情報を利用できません。' } as GeoError;
+  }
+  // 位置情報は安全なコンテキスト（HTTPS）でのみ動作する
+  if (!window.isSecureContext) {
+    throw { kind: 'insecure', message: 'HTTPS でのアクセス時のみ現在地を取得できます。' } as GeoError;
+  }
+  try {
+    // 高精度GPS。屋内・電波の弱い場所での初回測位に備えてタイムアウトは長め（20秒）
+    return await requestPosition({ enableHighAccuracy: true, timeout: 20_000, maximumAge: 60_000 });
+  } catch (e) {
+    const err = e as GeoError;
+    // 許可が無い/非対応/非HTTPS はリトライしても無駄なのでそのまま投げる
+    if (err.kind === 'denied' || err.kind === 'unsupported' || err.kind === 'insecure') throw err;
+    // タイムアウト・測位不可のときは、粗いが速い測位でフォールバック
+    return await requestPosition({ enableHighAccuracy: false, timeout: 15_000, maximumAge: 300_000 });
+  }
 }

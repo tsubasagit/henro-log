@@ -11,6 +11,7 @@ import templeIllust1 from '../assets/img/temple-illust-1.png';
 import templeIllust2 from '../assets/img/temple-illust-2.png';
 import templeIllust3 from '../assets/img/temple-illust-3.png';
 import templeIllust4 from '../assets/img/temple-illust-4.png';
+import { distanceKm, distanceLabel } from '../lib/derive';
 import { playStamp } from '../lib/sfx';
 import { downscaleImage } from '../lib/downscaleImage';
 import PhotoViewer, { type ViewerItem } from '../components/PhotoViewer';
@@ -307,12 +308,12 @@ export default function BoardView() {
             <div className="h-full bg-[#1f5b8c] transition-all duration-700" style={{ width: `${pct}%` }} />
           </div>
           <div
-            className="henro-walker absolute bottom-1 w-10 h-11 transition-[left] duration-700"
-            style={{ left: `${walkerPos}%`, marginLeft: '-20px' }}
+            className="henro-walker absolute bottom-1 w-8 h-9 transition-[left] duration-700"
+            style={{ left: `${walkerPos}%`, marginLeft: '-16px' }}
             aria-hidden="true"
           >
-            <img src={henroWalk1} alt="" className="henro-fa absolute bottom-0 left-0 w-10" />
-            <img src={henroWalk2} alt="" className="henro-fb absolute bottom-0 left-0 w-10" />
+            <img src={henroWalk1} alt="" className="henro-fa absolute bottom-0 left-0 w-8" />
+            <img src={henroWalk2} alt="" className="henro-fb absolute bottom-0 left-0 w-8" />
           </div>
         </div>
         <p className="mt-1 flex items-center justify-between text-xs text-slate-500">
@@ -346,6 +347,17 @@ export default function BoardView() {
                 const count = countOf(t.id);
                 const visited = count > 0;
                 const last = lastOf(t.id);
+                const prev = TEMPLE.get(t.id - 1); // 一つ前の札所（直線距離の起点）
+                // 前札所からの直線距離（両者の座標が揃っているときだけ）
+                const legKm =
+                  prev != null &&
+                  prev.lat != null && prev.lng != null &&
+                  t.lat != null && t.lng != null
+                    ? distanceKm(
+                        { lat: prev.lat, lng: prev.lng },
+                        { lat: t.lat, lng: t.lng },
+                      )
+                    : null;
                 const walked = t.id <= furthest; // 歩いた道（現在地まで）
                 const isNext = t.id === nextId; // 次に行く札所
                 const rot = ((t.id * 37) % 7) - 3; // -3〜3度、手押しっぽい微回転
@@ -432,6 +444,12 @@ export default function BoardView() {
                           <span className="block text-xs text-slate-500 truncate">
                             {t.city}・{t.honzon}
                           </span>
+                          {legKm != null && (
+                            <span className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
+                              <span aria-hidden="true">📍</span>
+                              前札所から 直線{distanceLabel(legKm)}
+                            </span>
+                          )}
                         </span>
                         <span className="shrink-0 text-right text-xs">
                           {visited ? (
